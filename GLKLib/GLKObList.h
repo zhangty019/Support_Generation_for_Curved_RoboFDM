@@ -1,7 +1,8 @@
 // GLKObList.h: interface for the GLKObList class.
 //
 //////////////////////////////////////////////////////////////////////
-#include <../ThirdPartyDependence/eigen3/Eigen/Dense> 
+#include <../ThirdPartyDependence/eigen3/Eigen/Dense>
+#include <vector>
 
 #ifndef _GLKObject
 #define _GLKObject
@@ -118,11 +119,6 @@ private:
 
 #ifndef _GLKARRAY
 #define _GLKARRAY
-
-#define GLKARRAY_VOIDPTR_TYPE		0
-#define GLKARRAY_INT_TYPE			1
-#define GLKARRAY_FLOAT_TYPE			2
-#define GLKARRAY_DOUBLE_TYPE		3
 
 class GLKArray  
 {

@@ -89,11 +89,6 @@ void QMeshNode::SetCoord3D( double x, double y, double z )
 	coord3D[0]=x;	coord3D[1]=y;	coord3D[2]=z;
 }
 
-void QMeshNode::GetCoord3D(double pp[3])
-{
-    pp[0] = coord3D[0];	pp[1] = coord3D[1]; pp[2] = coord3D[2];
-}
-
 void QMeshNode::GetCoord3D_last( double &x, double &y, double &z )
 {
 	x=coord3D_last[0];	y=coord3D_last[1];	z=coord3D_last[2];
@@ -347,16 +342,6 @@ void QMeshNode::SetCoord3D_FLP( double x, double y, double z )
    coord3D_FLP[0]=x;	coord3D_FLP[1]=y;	coord3D_FLP[2]=z;
 }
 
-double QMeshNode::dualArea() {
-	double area = 0;
-	GLKPOSITION Pos;
-	for (Pos = faceList.GetHeadPosition(); Pos != nullptr;) {
-		QMeshFace* connectFace = (QMeshFace*)(faceList.GetNext(Pos));
-		area += connectFace->CalArea();
-	}
-	return area;
-}
-
 
 //void QMeshNode::GetCoord3D(Eigen::Vector3f &printPos)
 //{
@@ -377,3 +362,13 @@ double QMeshNode::dualArea() {
 //{
 //    m_printNor << printNor(0), printNor(1), printNor(2);
 //}
+
+double QMeshNode::dualArea() {
+	double area = 0;
+	GLKPOSITION Pos;
+	for (Pos = faceList.GetHeadPosition(); Pos != nullptr;) {
+		QMeshFace* connectFace = (QMeshFace*)(faceList.GetNext(Pos));
+		area += connectFace->CalArea();
+	}
+	return area;
+}

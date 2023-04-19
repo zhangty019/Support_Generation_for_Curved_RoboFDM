@@ -8,7 +8,6 @@
 #include <stddef.h>
 
 #include "../GLKLib/GLKObList.h"
-#include <vector>
 
 #define MAX_EDGE_NUM	10
 
@@ -39,8 +38,6 @@ class QMeshFace : public GLKObject
 public:
 	QMeshFace();
 	virtual ~QMeshFace();
-
-	face_type faceType;
 
 public:
 	bool GetAttribFlag( const int whichBit );
@@ -86,9 +83,6 @@ public:
 	double GetArea() {return m_area;};
 	double CalArea2D();
 
-	bool isBoundaryFace();
-	int getNodePtrNumber(QMeshNode* node);
-
 	void SetMeshPatchPtr(QMeshPatch* _mesh);
 	QMeshPatch* GetMeshPatchPtr();
 
@@ -98,6 +92,7 @@ public:
 	void SetNormal(double nx, double ny, double nz) {abcd[0]=nx;abcd[1]=ny;abcd[2]=nz;};
     void GetNormal(double &nx, double &ny, double &nz){nx=abcd[0]; ny=abcd[1]; nz=abcd[2];};
 	void SetPlane(double nx, double ny, double nz, double dd) {abcd[0]=nx;abcd[1]=ny;abcd[2]=nz;abcd[3]=dd;};
+	double m_desiredNormal[3];
 
     double m_GaussArea;
 
@@ -120,18 +115,8 @@ public:
     bool IsMoreWeight;
     bool visible;
 
-
     int identifiedIndex;
 	GLKObList attachedList;	// a list of attached object
-	int boundIndex = -1; // this is for the boundary face index, used in QMeshVoxelOperation.cpp
-
-	bool needSupport = false; // for support surface indication
-	double m_desiredNormal[3];// for support face detection on tet surface with correct Face normal...
-							  // for iso-surface with correct Face normal
-	double m_desired_D;		  // for above^ plane equation
-
-	std::vector<SptTreeNode> support_treeNode_cell;
-	std::vector<QMeshNode*> support_treeNode_onFace;
 
 private:
 	int indexno;
@@ -146,7 +131,7 @@ private:
                                       //             point1              *
                                       //              /\                 *
                                       //    1 edge  /    \ _             *
-                                      //         |/_      |\ 0 edge      *
+                                      //         |_       |\ 0 edge      *
                                       //        /            \           *
                                       //      /                \         *
                                       //  point2 ------>-------- point0  *
@@ -172,6 +157,29 @@ public:
 	void SetLeftTetra(QMeshTetra * _pLeftTetra = NULL);
 	QMeshTetra * GetRightTetra();
 	void SetRightTetra(QMeshTetra * _pRightTetra = NULL);
+	bool isBoundaryFace();
+	int getNodePtrNumber(QMeshNode* node);
+
+	Eigen::Vector3d boundaryVector = Eigen::Vector3d::Zero();
+	bool model_boundary = false;
+	bool needSupport = false;
+
+	QMeshEdge* installedIsoEdge = nullptr;
+	bool isLocatedIsoEdge = false;
+	std::vector<QMeshNode*> support_treeNode_onFace;
+	std::vector<SptTreeNode> support_treeNode_cell;
+
+	face_type faceType;
+
+	int splitIndex = -1;// for split layer output
+
+	bool isIntersetwithPlane = false;
+	Eigen::Vector3d printingDir = Eigen::Vector3d::Zero();
+	Eigen::Vector3d stessFilament_vector = Eigen::Vector3d::Zero();
+
+	int hole_index = -1; //index = -1(inital), 0(other), 1(1st Hole), 2(2st Hole)...
+	bool is_keptFace = false;
+	int overhang_region_idx = -1;
 
 private:
 	//for volume mesh

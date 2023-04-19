@@ -15,11 +15,28 @@ UI_DIR += ./GeneratedFiles
 INCLUDEPATH += $$PWD/../ThirdPartyDependence/eigen3
 INCLUDEPATH += $$PWD/../ThirdPartyDependence
 
-HEADERS  +=MainWindow.h
+HEADERS  +=MainWindow.h\
+fileIO.h\
+heatmethodfield.h\
+IsoLayerGeneration.h\
+meshOperation.h\
+robotWpGeneration.h\
+supportGene.h\
+tetgen.h\
+toolpathGeneration.h
 
 #ui_MainWindow not included.
 SOURCES += main.cpp\
-MainWindow.cpp
+MainWindow.cpp\
+fileIO.cpp\
+heatmethodfield.cpp\
+IsoLayerGeneration.cpp\
+meshOperation.cpp\
+predicates.cxx\
+robotWpGeneration.cpp\
+supportGene.cpp\
+tetgen.cxx\
+toolpathGeneration.cpp
 
 
 FORMS += ./MainWindow.ui

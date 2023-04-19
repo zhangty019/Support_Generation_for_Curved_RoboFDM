@@ -2,37 +2,114 @@
 #include <iostream>
 #include <fstream>
 #include "GLKGeometry.h"
+#include "heatmethodfield.h"
+#include "io.h"
+#include "dirent.h"
 
-toolpathGeneration::toolpathGeneration(QMeshPatch* isoLayer, double deltaWidth, double deltaDistance)
-{
-	surfaceMesh = isoLayer;
+toolpathGeneration::toolpathGeneration(PolygenMesh* isoLayerSet, PolygenMesh* toolPathSet,
+	double deltaWidth, double deltaDistance){
+
+	m_isoLayerSet = isoLayerSet;
+	m_toolPathSet = toolPathSet;
 	toolpath_Width = deltaWidth;
 	toolpath_Distance = deltaDistance;
 }
 
 toolpathGeneration::~toolpathGeneration() {}
 
-QMeshPatch* toolpathGeneration::generateBundaryToolPath() {
+void toolpathGeneration::generate_all_toolPath() {
 
-	int curveNum = autoComputeTPathNum();
-	if (curveNum > 100) {
-		std::cout << "layer = " << surfaceMesh->GetIndexNo() << " high curve num" << std::endl;
+	if (toolpath_Width <= 0.0 || toolpath_Distance <= 0.0){
+
+		std::cout << "width or distance is zero!" << std::endl;
+		return;
 	}
-	if (curveNum == 0 || curveNum > 100) return NULL;
 
-	double deltaIsoValue = 1.0 / curveNum; // deltaIsoValue in [0-1]
+	int layerNum = m_isoLayerSet->GetMeshList().GetCount();
+	std::vector<QMeshPatch*> sliceVector(layerNum);
+	std::vector<QMeshPatch*> toolpathVector(layerNum);
+
+	int tempInd = 0;
+	for (GLKPOSITION posMesh = m_isoLayerSet->GetMeshList().GetHeadPosition(); posMesh != nullptr;) {
+		QMeshPatch* layer = (QMeshPatch*)m_isoLayerSet->GetMeshList().GetNext(posMesh);
+
+		sliceVector[tempInd] = layer;
+		tempInd++;
+	}
+
+#pragma omp parallel
+	{
+#pragma omp for  
+		for (int i = 0; i < sliceVector.size(); i++) {
+
+			/* ---- Generate boundary heat field ---- */
+			QMeshPatch* layer = sliceVector[i];
+			heatMethodField* heatField_layer = new heatMethodField(layer);
+
+			heatField_layer->compBoundaryHeatKernel();
+			delete heatField_layer;
+			/* ---- END ---- */
+
+			QMeshPatch* singlePath = this->generate_each_bundaryToolPath(layer);
+			
+			if (singlePath != NULL) {
+
+				this->resampleToolpath(singlePath);
+
+				if (layer->is_SupportLayer) {
+					singlePath->is_SupportLayer = layer->is_SupportLayer;
+				}
+				singlePath->compatible_layer_Index = layer->compatible_layer_Index;
+				singlePath->attached_Layer = layer;
+			}
+
+			toolpathVector[layer->GetIndexNo()] = singlePath;
+		}
+	}
+
+	std::cout << "\nThe number means Toolpath i is NULL, skip it." << std::endl;
+	for (int i = 0; i < layerNum; i++) {
+
+		if ((i + 1) % 100 == 0) std::cout << std::endl;
+		if (toolpathVector[i] != NULL) std::cout << ". ";
+		else std::cout << "_" << i << "_";
+
+		if (toolpathVector[i] != NULL) {
+			QMeshPatch* singlePath = toolpathVector[i];
+			singlePath->SetIndexNo(i);
+			m_toolPathSet->GetMeshList().AddTail(singlePath);
+		}
+	}
+	std::cout << std::endl;
+}
+
+QMeshPatch* toolpathGeneration::generate_each_bundaryToolPath(QMeshPatch* surfaceMesh) {
+
+	int curveNum = autoComputeTPathNum(surfaceMesh, true); int boundaryTp_num = 3;
+
+	if (curveNum > 100) {
+		std::cout << "layer = " << surfaceMesh->GetIndexNo() << " high curve num " << curveNum << "." << std::endl;
+	}
+	if (curveNum <= 0 || curveNum > 100) { return NULL; }
+
+	if (curveNum < boundaryTp_num) {
+		if (!surfaceMesh->is_SupportLayer)
+			curveNum = boundaryTp_num; // small layers needs at lest 3 rings of boundary loop
+		else  
+			return NULL; 
+	}
 	std::vector<double> isoValue(curveNum);// store all isoValue
+	double deltaIsoValue = 1.0 / curveNum; // deltaIsoValue in [0-1]
 	QMeshPatch* singlePath = new QMeshPatch;
 
 	for (int i = 0; i < curveNum; i++) {
+
 		isoValue[i] = (i + 0.5) * deltaIsoValue;
-
 		//build isonode with each isoValue without linkage
-		generateBoundaryIsoNode(singlePath, isoValue[i]);
+		generateBoundaryIsoNode(singlePath, surfaceMesh, isoValue[i]);
 
-		if (singlePath->GetNodeNumber() == 0) {
-			std::cout << "Warning!! the boundary toolpath contains no isonode!\n";  //means no node in singlePath
-		}
+		if (singlePath->GetNodeNumber() == 0)
+			std::cout << "Warning! the boundary toolpath contains no isonode!" << std::endl;  //means no node in singlePath
 	}
 
 	//DEBUG
@@ -63,9 +140,11 @@ QMeshPatch* toolpathGeneration::generateBundaryToolPath() {
 	return singlePath;
 }
 
-int toolpathGeneration::autoComputeTPathNum() {
+//true->boundary; false->zigzag
+int toolpathGeneration::autoComputeTPathNum(QMeshPatch* surfaceMesh, bool boundaryORzigzag) {
 
 	double distanceTPath = this->toolpath_Width;
+	if (!boundaryORzigzag) distanceTPath *= 1.00; //0.95
 
 	int iter = 10;
 	std::vector<Eigen::MatrixXd> isoPoint(10);
@@ -82,8 +161,15 @@ int toolpathGeneration::autoComputeTPathNum() {
 		for (GLKPOSITION Pos = surfaceMesh->GetEdgeList().GetHeadPosition(); Pos;) {
 			QMeshEdge* Edge = (QMeshEdge*)surfaceMesh->GetEdgeList().GetNext(Pos);
 
-			double a = Edge->GetStartPoint()->boundaryValue;
-			double b = Edge->GetEndPoint()->boundaryValue;
+			double a, b;
+			if (boundaryORzigzag) {
+				a = Edge->GetStartPoint()->boundaryValue;
+				b = Edge->GetEndPoint()->boundaryValue;
+			}
+			else {
+				a = Edge->GetStartPoint()->zigzagValue;
+				b = Edge->GetEndPoint()->zigzagValue;
+			}
 
 			if ((isoValue - a) * (isoValue - b) < 0.0) {
 				double alpha = (isoValue - a) / (b - a);
@@ -103,6 +189,16 @@ int toolpathGeneration::autoComputeTPathNum() {
 		//std::cout << "isovalue " << isoValue << " layer has " << index << " points" << std::endl;
 	}
 
+	//fix bug
+	double node_coord3D_sum = 0.0;
+	for (int i = 0; i < iter - 1; i++) {
+
+		node_coord3D_sum += isoPoint[i].sum();
+	}
+	//std::cout << surfaceMesh->GetIndexNo() << " " << node_coord3D_sum << std::endl;
+	if (fabs(node_coord3D_sum) < 1e-5) return 0;
+
+
 	Eigen::VectorXd distance(iter - 1);
 	for (int i = 0; i < iter - 1; i++) {
 		distance(i) = 1000000.0;
@@ -110,16 +206,25 @@ int toolpathGeneration::autoComputeTPathNum() {
 		for (int j = 0; j < isoPointNum(i); j++) {
 			for (int k = 0; k < isoPointNum(i + 1); k++) {
 				double dis = (isoPoint[i].row(j) - isoPoint[i + 1].row(k)).norm();
-
 				if (dis < distance(i)) distance(i) = dis;
 			}
 		}
 	}
 	//std::cout << distance << std::endl; // return the number of cut
-	return floor(distance.sum() / distanceTPath); 
+	return floor(distance.sum() / distanceTPath);
 }
 
-void toolpathGeneration::generateBoundaryIsoNode(QMeshPatch* singlePath, double isoValue) {
+void toolpathGeneration::generateBoundaryIsoNode(QMeshPatch* singlePath, QMeshPatch* surfaceMesh, double isoValue) {
+
+	//when the node iso-value is equal to surface value, add this eps.
+	/*double eps = 1.0e-5;
+	for (GLKPOSITION Pos = surfaceMesh->GetNodeList().GetHeadPosition(); Pos;) {
+		QMeshNode* Node = (QMeshNode*)surfaceMesh->GetNodeList().GetNext(Pos);
+		if (fabs(Node->boundaryValue - isoValue) < eps) {
+			if (Node->boundaryValue > isoValue) Node->boundaryValue = isoValue + eps;
+			else Node->boundaryValue = isoValue - eps;
+		}
+	}*/
 
 	//----build the node and install back to the "singlePath"
 	for (GLKPOSITION Pos = surfaceMesh->GetEdgeList().GetHeadPosition(); Pos;) {
@@ -173,28 +278,50 @@ void toolpathGeneration::linkEachIsoNode(QMeshPatch* singlePath, double startIso
 	//}
 	/*END*/
 
-	// get a First Node(boundFirstNode) to start the toolPath
-	QMeshNode* boundFirstNode = nullptr;
+	// Method 1: find the First Node(boundFirstNode) which is nearest with x axis
+	QMeshNode* X_nearestFirstNode = nullptr;
+	double minX = 1e10;
 	for (GLKPOSITION Pos = singlePath->GetNodeList().GetHeadPosition(); Pos;) {
 		QMeshNode* thisNode = (QMeshNode*)singlePath->GetNodeList().GetNext(Pos);
 		if (thisNode->connectTPathProcessed == false && startIsoValue == thisNode->isoValue) {
-			thisNode->connectTPathProcessed = true;
-			boundFirstNode = thisNode;
-			break;
+
+			double px = 0.0; double py = 0.0; double pz = 0.0;
+			thisNode->GetCoord3D(px, py, pz);
+			if (px < minX) {
+				minX = px;
+				X_nearestFirstNode = thisNode;
+			}
 		}
 	}
+	QMeshNode* boundFirstNode = X_nearestFirstNode;
+	boundFirstNode->connectTPathProcessed = true;
+
+	// Method 2: get a First Node(boundFirstNode) to start the toolPath (randomly)
+	//QMeshNode* boundFirstNode = nullptr;
+	//for (GLKPOSITION Pos = singlePath->GetNodeList().GetHeadPosition(); Pos;) {
+	//	QMeshNode* thisNode = (QMeshNode*)singlePath->GetNodeList().GetNext(Pos);
+	//	if (thisNode->connectTPathProcessed == false && startIsoValue == thisNode->isoValue) {
+	//		thisNode->connectTPathProcessed = true;
+	//		boundFirstNode = thisNode;
+	//		break;
+	//	}
+	//}
+
+	// protect output
+	if (boundFirstNode == NULL) std::cout << "Cannot find the start point!, please check." << std::endl;
 
 	QMeshNode* sNode = boundFirstNode;
 	QMeshNode* eNode = findNextBoundaryToolPath(sNode, singlePath);
+
 	/* Link all of iso-Node in one Layer*/
 	do {
-		
+
 		// Start linking one ring with same iso-Value
 		QMeshNode* unlinked_eNode = link_OneRing_isoNode(singlePath, sNode, eNode);
 		if (unlinked_eNode == nullptr) return;
-		
+
 		if (detectAll_isoNode_Processed(singlePath)) return;
-		
+
 		QMeshNode* link_sNode = unlinked_eNode;
 		QMeshNode* link_eNode = findNextNearestPoint(link_sNode, singlePath);
 		if (link_eNode == nullptr) std::cout << "Error: Cannot find link_eNode" << std::endl;
@@ -259,10 +386,11 @@ QMeshNode* toolpathGeneration::findNextBoundaryToolPath(QMeshNode* sNode, QMeshP
 		if (nextNodeDetected == true) break;
 	}
 
-	if (nextNodeDetected) { 
+	if (nextNodeDetected) {
 		eNode->connectTPathProcessed = true;
-		return eNode; 
-	}else {
+		return eNode;
+	}
+	else {
 		//std::cout<<"Error, the next node is not found!"<<std::endl;
 		return nullptr;
 	}
@@ -288,10 +416,10 @@ QMeshEdge* toolpathGeneration::buildNewEdgetoQMeshPatch(QMeshPatch* patch, QMesh
 	return isoEdge;
 }
 
-QMeshNode* toolpathGeneration::findNextNearestPoint(QMeshNode* sNode, QMeshPatch* singlePath){
+QMeshNode* toolpathGeneration::findNextNearestPoint(QMeshNode* sNode, QMeshPatch* singlePath) {
 
 	GLKGeometry geo;
-	double pp[3]; sNode->GetCoord3D(pp);
+	double pp[3]; sNode->GetCoord3D(pp[0], pp[1], pp[2]);
 	double p1[3];
 	double dist = 1000.0;
 	QMeshNode* nextNode = nullptr;
@@ -299,15 +427,15 @@ QMeshNode* toolpathGeneration::findNextNearestPoint(QMeshNode* sNode, QMeshPatch
 	for (GLKPOSITION Pos = singlePath->GetNodeList().GetHeadPosition(); Pos;) {
 		QMeshNode* Node = (QMeshNode*)singlePath->GetNodeList().GetNext(Pos);
 		if (Node->connectTPathProcessed == true) continue;
-		Node->GetCoord3D(p1);
+		Node->GetCoord3D(p1[0], p1[1], p1[2]);
 		double distancePP = geo.Distance_to_Point(pp, p1);
 		if (distancePP < dist) {
 			nextNode = Node;
 			dist = distancePP;
 		}
 	}
-	if (nextNode == nullptr) { 
-		std::cout << "There is no isoNode need to link between different isoValue!" <<std::endl;
+	if (nextNode == nullptr) {
+		std::cout << "There is no isoNode need to link between different isoValue!" << std::endl;
 		return nullptr;
 	}
 	else {
@@ -346,9 +474,7 @@ QMeshNode* toolpathGeneration::link_OneRing_isoNode(QMeshPatch* singlePath, QMes
 
 void toolpathGeneration::resampleToolpath(QMeshPatch* patch) {
 
-	if (patch == NULL) return;
-
-	double length = this->toolpath_Distance * 0.75;
+	double length = this->toolpath_Distance;
 
 	for (GLKPOSITION Pos = patch->GetNodeList().GetHeadPosition(); Pos;) {
 		QMeshNode* Node = (QMeshNode*)patch->GetNodeList().GetNext(Pos);
@@ -357,7 +483,7 @@ void toolpathGeneration::resampleToolpath(QMeshPatch* patch) {
 
 	QMeshEdge* sEdge = (QMeshEdge*)patch->GetEdgeList().GetHead();
 	QMeshNode* sNode = sEdge->GetStartPoint(); // the first Node of Toolpath
-	sNode->resampleChecked = true;
+	if (sEdge->GetStartPoint()->GetEdgeNumber() > 1) sNode = sEdge->GetEndPoint();
 
 	QMeshNode* sPoint = sNode;	QMeshNode* ePoint;	double lsum = 0.0;// temp distance record
 	// mark the resampleChecked nodes
@@ -371,10 +497,11 @@ void toolpathGeneration::resampleToolpath(QMeshPatch* patch) {
 		if (Edge == patch->GetEdgeList().GetTail()) {
 
 			ePoint->resampleChecked = true;
+			sPoint->resampleChecked = true;
 			break;
 		}
 		// give the ancor points (Linkage point)
-		if (Edge->isConnectEdge == true) {
+		if (Edge->isConnectEdge || Edge->isConnectEdge_zigzag) {
 
 			sPoint->resampleChecked = true;	ePoint->resampleChecked = true;
 
@@ -385,7 +512,7 @@ void toolpathGeneration::resampleToolpath(QMeshPatch* patch) {
 
 		lsum += Edge->CalLength();
 		if (lsum > length) {
-			
+
 			ePoint->resampleChecked = true;
 			sPoint = ePoint;
 			lsum = 0;
@@ -394,6 +521,7 @@ void toolpathGeneration::resampleToolpath(QMeshPatch* patch) {
 			sPoint = ePoint;
 		}
 	}
+
 	// reorganize the toolpath node order(toolpath_NodeSet)
 	std::vector<QMeshNode*> toolpath_NodeSet;
 	toolpath_NodeSet.push_back(sNode);
@@ -405,6 +533,7 @@ void toolpathGeneration::resampleToolpath(QMeshPatch* patch) {
 
 		if (ePoint->resampleChecked)	toolpath_NodeSet.push_back(ePoint);
 
+		sNode = ePoint;
 	}
 
 	////DEBUG
@@ -416,8 +545,25 @@ void toolpathGeneration::resampleToolpath(QMeshPatch* patch) {
 
 	//rebuild the edge
 	patch->GetEdgeList().RemoveAll();
-	for (int i = 0; i < ( toolpath_NodeSet.size() - 1); i++)
+	for (int i = 0; i < (toolpath_NodeSet.size() - 1); i++)
 		buildNewEdgetoQMeshPatch(patch, toolpath_NodeSet[i], toolpath_NodeSet[i + 1]);
 
 	//printf("--> Resample Toolpath Finish\n");
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

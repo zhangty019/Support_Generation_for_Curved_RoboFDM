@@ -1,6 +1,4 @@
 /*Heat method field value computing*/
-/*Written by Guoxin Fang 09-11-2019 (latest version time) in HongKong*/
-
 #ifndef HEATMETHODFIELD_H
 #define HEATMETHODFIELD_H
 
@@ -19,10 +17,12 @@ public:
     ~heatMethodField();
 
     void compBoundaryHeatKernel();
-    void inputStressFieldValue();
+    void compZigZagHeatKernel();
+    void compZigZagFieldValue();
+    //void inputStressFieldValue();
 
     void runHeatMethod();
-    void planeCutSelection(double norm[]);
+    void planeCutSelection(double direction[]);
     void meshRefinement();
 
 private:
@@ -37,8 +37,9 @@ private:
     Eigen::SimplicialCholesky<Eigen::SparseMatrix<double>> poissonSolver;
 
     void _initBoundaryHeatKernel();
+    void _initZigZagHeatKernel();
 
-    int detectGenus();
+    //int detectGenus();
 
     void initialMeshIndex();
     void heatMethodPreProcess();
@@ -52,6 +53,8 @@ private:
     double subtractMinimumDistance(Eigen::VectorXd &phi) const;
     double computeEdgeAngle(QMeshNode* Node, QMeshEdge* connectEdge) const;
     double meanEdgeLength() const;
+
+    bool scalarFieldCompute_zigzag();
 };
 
 #endif // HEATMETHODFIELD_H

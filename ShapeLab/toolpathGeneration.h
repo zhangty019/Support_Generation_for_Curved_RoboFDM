@@ -11,18 +11,20 @@
 class toolpathGeneration
 {
 public:
-	toolpathGeneration(QMeshPatch* isoLayer, double deltaWidth, double deltaDistance);
+	toolpathGeneration(PolygenMesh* isoLayerSet, PolygenMesh* toolPathSet,
+		double deltaWidth, double deltaDistance);
 	~toolpathGeneration();
 
-	QMeshPatch* generateBundaryToolPath();
-	void resampleToolpath(QMeshPatch* patch);
-
-	double toolpath_Width;
-	double toolpath_Distance;
+	
+	void generate_all_toolPath();
+	
 
 private:
-	int autoComputeTPathNum();
-	void generateBoundaryIsoNode(QMeshPatch* singlePath, double isoValue);
+
+	QMeshPatch* generate_each_bundaryToolPath(QMeshPatch* surfaceMesh);
+	void resampleToolpath(QMeshPatch* patch);
+	int autoComputeTPathNum(QMeshPatch* surfaceMesh, bool boundaryORzigzag);
+	void generateBoundaryIsoNode(QMeshPatch* singlePath, QMeshPatch* surfaceMesh, double isoValue);
 	void linkEachIsoNode(QMeshPatch* singlePath, double startIsoValue);
 	QMeshNode* findNextBoundaryToolPath(QMeshNode* sNode, QMeshPatch* singlePath);
 	QMeshEdge* buildNewEdgetoQMeshPatch(QMeshPatch* patch, QMeshNode* startNode, QMeshNode* endNode);
@@ -30,7 +32,11 @@ private:
 	bool detectAll_isoNode_Processed(QMeshPatch* singlePath);
 	QMeshNode* link_OneRing_isoNode(QMeshPatch* singlePath, QMeshNode* sNode, QMeshNode* eNode);
 
-	QMeshPatch* surfaceMesh;
+
+	PolygenMesh* m_isoLayerSet;
+	PolygenMesh* m_toolPathSet;
+	double toolpath_Width;
+	double toolpath_Distance;
 };
 
 #endif // TOOLPATHGENERATION_H

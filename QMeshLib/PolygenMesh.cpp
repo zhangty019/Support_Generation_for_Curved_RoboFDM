@@ -87,50 +87,21 @@ void PolygenMesh::BuildGLList(bool bVertexNormalShading)
 
 void PolygenMesh::_buildDrawShadeList(bool bVertexNormalShading)
 {
-    GLKPOSITION Pos;
-    GLKPOSITION PosFace;
-    GLKPOSITION PosNode;
-    QMeshFace* face;
-    QMeshNode* node;
-    QMeshPatch* mesh;
-    double xx, yy, zz, dd;		float rr, gg, bb;
-    int k, i, num, meshIndex;
     glNewList(m_drawListID, GL_COMPILE);
 
     glEnable(GL_NORMALIZE);
     glEnable(GL_LIGHTING);
 
-	//drawOriginalCoordinate();
+    drawOriginalCoordinate();
     if (isTransparent) {
         glEnable(GL_DEPTH_TEST);
         glDepthMask(GL_FALSE);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glEnable(GL_CULL_FACE);
     }
 
-    /*------------- Draw FACE (CAD_PARTS) -------------*/
-    if (this->meshType == CAD_PARTS) {
-        for (GLKPOSITION Pos = meshList.GetHeadPosition(); Pos != NULL; ) {
-            QMeshPatch* mesh = (QMeshPatch*)(meshList.GetNext(Pos));
-
-            float rr, gg, bb;
-            glBegin(GL_TRIANGLES);
-
-
-            for (GLKPOSITION PosFace = (mesh->GetFaceList()).GetHeadPosition(); PosFace != NULL;) {
-                QMeshFace* face = (QMeshFace*)((mesh->GetFaceList()).GetNext(PosFace));
-
-                rr = gg = bb = 0.8f;
-                if (mesh->patchName == "floor") { rr = 0.05; gg = 0.05; bb = 0.05; }
-                glColor3f(rr, gg, bb);
-                this->drawSingleFace(face);
-            }
-            glEnd();
-        }
-    }
-
-    /*------------- Draw FACE (TET) -------------*/
-    if (this->meshType == TET) {
+    if (this->meshType == TET_MODEL || this->meshType == SUPPORT_TET_MODEL) {
         for (GLKPOSITION Pos = meshList.GetHeadPosition(); Pos != NULL; ) {
             QMeshPatch* mesh = (QMeshPatch*)(meshList.GetNext(Pos));
             float rr, gg, bb;
@@ -139,41 +110,27 @@ void PolygenMesh::_buildDrawShadeList(bool bVertexNormalShading)
             for (GLKPOSITION PosFace = (mesh->GetFaceList()).GetHeadPosition(); PosFace != NULL;) {
                 QMeshFace* face = (QMeshFace*)((mesh->GetFaceList()).GetNext(PosFace));
 
-                // the inner face is not visulize 
-                if (face->inner == true) continue;
+                // the inner face is not visulize    
+                if (face->inner) continue;
+                //if (!face->needSupport || face->overhang_region_idx != 1) continue;
+                rr = gg = bb = 0.85;
 
-                rr = 0.8; gg = 0.8; bb = 0.8;
+                if (mesh->drawStressField) { //FEM stress distribution result
+                    QMeshTetra* Tetra;
+                    if (face->GetLeftTetra() == NULL) Tetra = face->GetRightTetra();
+                    else Tetra = face->GetLeftTetra();
+                    _changeValueToColor(mesh->maxStressValue, mesh->minStressValue, Tetra->sigma_max, rr, gg, bb);
+                    glColor3f(rr, gg, bb);
+                }
 
-                if (face->needSupport) { rr = 0.8; gg = 0.0; bb = 0.0; }
-                glColor3f(rr, gg, bb);
-                this->drawSingleFace(face);
+                if (face->isHandleDraw) { rr = 0.8; gg = 0.3; bb = 1.0; }
+                if (face->isFixedDraw) { rr = 0.8; gg = 1.0; bb = 0.3; }
+                if (face->hole_index > 0) _changeValueToColor(face->hole_index, rr, gg, bb);
+                if (face->is_keptFace) { rr = 1.0; gg = 0.8; bb = 0.3; }
 
-            }
-            glEnd();
-        }
-    }
-
-    /*------------- Draw FACE (CURVED_LAYER) -------------*/
-    if (this->meshType == CURVED_LAYER) {
-        for (GLKPOSITION Pos = meshList.GetHeadPosition(); Pos != NULL; ) {
-            QMeshPatch* mesh = (QMeshPatch*)(meshList.GetNext(Pos));
-
-            if (mesh->drawThisPatch == false) continue;
-
-            float rr, gg, bb;
-            glBegin(GL_TRIANGLES);
-
-
-            for (GLKPOSITION PosFace = (mesh->GetFaceList()).GetHeadPosition(); PosFace != NULL;) {
-                QMeshFace* face = (QMeshFace*)((mesh->GetFaceList()).GetNext(PosFace));
-
-                _changeValueToColor(mesh->GetIndexNo(), rr, gg, bb);
-                if (mesh->is_SupportLayer && this->getModelName() == "Layers") { rr = gg = bb = 0.8; }
-                if (this->getModelName() == "Tight_supportLayerSet") { rr = gg = bb = 0.9; }
-
-                if (face->support_treeNode_cell.size() != 0)
-                { 
-                    _changeValueToColor(10.0, 0.0, (double)face->support_treeNode_cell.size(), rr, gg, bb);
+                if (mesh->drawOverhangFace) {
+                    if (face->needSupport) _changeValueToColor(face->overhang_region_idx, rr, gg, bb);
+                    else { rr = gg = bb = 0.85; }
                 }
                 
 
@@ -183,23 +140,43 @@ void PolygenMesh::_buildDrawShadeList(bool bVertexNormalShading)
             glEnd();
         }
     }
-
-    if (this->meshType == SUPPORT_RAY) {
+    if (this->meshType == CURVED_LAYER) {
         for (GLKPOSITION Pos = meshList.GetHeadPosition(); Pos != NULL; ) {
             QMeshPatch* mesh = (QMeshPatch*)(meshList.GetNext(Pos));
 
             if (mesh->drawThisPatch == false) continue;
-
             float rr, gg, bb;
+
             glBegin(GL_TRIANGLES);
-
-
             for (GLKPOSITION PosFace = (mesh->GetFaceList()).GetHeadPosition(); PosFace != NULL;) {
                 QMeshFace* face = (QMeshFace*)((mesh->GetFaceList()).GetNext(PosFace));
 
-                rr = 0.85; gg = 0.35; bb = 0.65;
+                _changeValueToColor(mesh->GetIndexNo(), rr, gg, bb);
+                if(mesh->is_SupportLayer) { rr = 0.0; gg = 1.0; bb = 0.5; }
 
                 glColor3f(rr, gg, bb);
+
+                this->drawSingleFace(face);
+            }
+            glEnd();
+        }
+    }
+
+    if (this->meshType == CNC_PRT) {
+        for (GLKPOSITION Pos = meshList.GetHeadPosition(); Pos != NULL; ) {
+            QMeshPatch* mesh = (QMeshPatch*)(meshList.GetNext(Pos));
+
+            if (mesh->drawThisPatch == false) continue;
+            float rr, gg, bb;
+
+            glBegin(GL_TRIANGLES);
+            for (GLKPOSITION PosFace = (mesh->GetFaceList()).GetHeadPosition(); PosFace != NULL;) {
+                QMeshFace* face = (QMeshFace*)((mesh->GetFaceList()).GetNext(PosFace));
+
+                rr = gg = bb = 0.8;
+
+                glColor3f(rr, gg, bb);
+
                 this->drawSingleFace(face);
             }
             glEnd();
@@ -256,39 +233,124 @@ void PolygenMesh::_changeValueToColor(int nType, float & nRed, float & nGreen, f
 
 void PolygenMesh::_buildDrawMeshList()
 {
-  
-    GLKPOSITION Pos;
-    GLKPOSITION PosEdge;
-    float rr, gg, bb;
+    if (meshList.GetCount() == 0) return;
 
-    if (meshList.GetCount()==0) return;
-
-    glNewList(m_drawListID+1, GL_COMPILE);
+    glNewList(m_drawListID + 1, GL_COMPILE);
     glDisable(GL_LIGHTING);
-    
-    glLineWidth(2.0);
-    QMeshEdge* edge;
-    QMeshPatch* mesh;
-    double xx, yy, zz;
+    if (edgeColor)  glLineWidth(1.0);
 
-    /*------------- Draw EDGE (CAD_PARTS) -------------*/
-    if (this->meshType == CAD_PARTS) {
+    if (this->meshType == TET_MODEL) {
+        glLineWidth(1.0);
         for (GLKPOSITION Pos = meshList.GetHeadPosition(); Pos != NULL; ) {
             QMeshPatch* mesh = (QMeshPatch*)(meshList.GetNext(Pos));
+            float rr, gg, bb;
 
-            if (mesh->patchName == "floor") continue;
+            if (mesh->drawThisPatch == false) continue;
 
             glBegin(GL_LINES);
-            glLineWidth(1.0);
-            rr = 0.3; gg = 0.3; bb = 0.3;
 
             for (GLKPOSITION PosEdge = (mesh->GetEdgeList()).GetHeadPosition(); PosEdge != NULL;) {
                 QMeshEdge* edge = (QMeshEdge*)((mesh->GetEdgeList()).GetNext(PosEdge));
 
+                if (edge->inner) continue;
+
+                glColor3f(0.55, 0.55, 0.55);
+
+                this->drawSingleEdge(edge);
+            }
+
+            glEnd();
+        }
+    }
+
+    if (this->meshType == SUPPORT_TET_MODEL) {
+        glLineWidth(1.0);
+        for (GLKPOSITION Pos = meshList.GetHeadPosition(); Pos != NULL; ) {
+            QMeshPatch* mesh = (QMeshPatch*)(meshList.GetNext(Pos));
+            float rr, gg, bb;
+
+            glBegin(GL_LINES);
+
+            for (GLKPOSITION PosEdge = (mesh->GetEdgeList()).GetHeadPosition(); PosEdge != NULL;) {
+                QMeshEdge* edge = (QMeshEdge*)((mesh->GetEdgeList()).GetNext(PosEdge));
+
+                if (edge->inner) continue;
+
+                glColor3f(0.2, 0.2, 0.2);
+
+                this->drawSingleEdge(edge);
+            }
+
+            glEnd();
+        }
+    }
+
+    if (this->meshType == SURFACE_MESH) {
+        glLineWidth(1.0);
+        for (GLKPOSITION Pos = meshList.GetHeadPosition(); Pos != NULL; ) {
+            QMeshPatch* mesh = (QMeshPatch*)(meshList.GetNext(Pos));
+            float rr, gg, bb;
+
+            glBegin(GL_LINES);
+
+            for (GLKPOSITION PosEdge = (mesh->GetEdgeList()).GetHeadPosition(); PosEdge != NULL;) {
+                QMeshEdge* edge = (QMeshEdge*)((mesh->GetEdgeList()).GetNext(PosEdge));
+
+                glColor3f(0.2, 0.2, 0.2);
+
+                this->drawSingleEdge(edge);
+            }
+
+            glEnd();
+        }
+    }
+
+    if (this->meshType == CURVED_LAYER) {
+        glLineWidth(0.5);
+        for (GLKPOSITION Pos = meshList.GetHeadPosition(); Pos != NULL; ) {
+            QMeshPatch* mesh = (QMeshPatch*)(meshList.GetNext(Pos));
+
+            if (mesh->drawThisPatch == false) continue;
+            float rr, gg, bb;
+
+            glBegin(GL_LINES);
+
+            for (GLKPOSITION PosEdge = (mesh->GetEdgeList()).GetHeadPosition(); PosEdge != NULL;) {
+                QMeshEdge* edge = (QMeshEdge*)((mesh->GetEdgeList()).GetNext(PosEdge));
+
+                glColor3f(0.75, 0.75, 0.75);
+
+                //this->drawSingleEdge(edge);
+            }
+
+            glEnd();
+        }
+    }
+
+    if (this->meshType == CNC_PRT) {
+        glLineWidth(2.5);
+        for (GLKPOSITION Pos = meshList.GetHeadPosition(); Pos != NULL; ) {
+            QMeshPatch* mesh = (QMeshPatch*)(meshList.GetNext(Pos));
+
+            if (mesh->drawThisPatch == false) continue;
+
+            //std::cout << "model name = " << mesh->patchName << std::endl;
+
+            glBegin(GL_LINES);
+
+            float rr, gg, bb;
+
+            for (GLKPOSITION PosEdge = (mesh->GetEdgeList()).GetHeadPosition(); PosEdge != NULL;) {
+                QMeshEdge* edge = (QMeshEdge*)((mesh->GetEdgeList()).GetNext(PosEdge));
+
+                if (edge->GetLeftFace() == NULL || edge->GetRightFace() == NULL) continue;
+
                 // only show the boundary eadge
                 Eigen::Vector3d normal_Lface, normal_Rface;
+                //edge->GetLeftFace()->CalPlaneEquation();
                 edge->GetLeftFace()->GetNormal(normal_Lface(0), normal_Lface(1), normal_Lface(2));
                 normal_Lface = normal_Lface.normalized();
+                //edge->GetRightFace()->CalPlaneEquation();
                 edge->GetRightFace()->GetNormal(normal_Rface(0), normal_Rface(1), normal_Rface(2));
                 normal_Rface = normal_Rface.normalized();
 
@@ -302,100 +364,99 @@ void PolygenMesh::_buildDrawMeshList()
                 }
             }
             glEnd();
-        }
-    }
-    /*------------- Draw EDGE (TET) -------------*/
-    if (this->meshType == TET && false) {
-        for (GLKPOSITION Pos = meshList.GetHeadPosition(); Pos != NULL; ) {
-            QMeshPatch* mesh = (QMeshPatch*)(meshList.GetNext(Pos));
-
-            glBegin(GL_LINES);
-            glLineWidth(2.0);
-            rr = 0.75; gg = 0.75; bb = 0.75;
-
-            for (GLKPOSITION PosEdge = (mesh->GetEdgeList()).GetHeadPosition(); PosEdge != NULL;) {
-                QMeshEdge* edge = (QMeshEdge*)((mesh->GetEdgeList()).GetNext(PosEdge));
-
-                if (edge->inner) continue;
-
-                glColor3f(rr, gg, bb);
-                
-
-                this->drawSingleEdge(edge);
-            }
-            glEnd();
+            //std::cout << "model name = " << mesh->patchName << " end" << std::endl;
         }
     }
 
-    /*------------- Draw EDGE (CURVED_LAYER)-------------*/
-    if (this->meshType == CURVED_LAYER) {
-        for (GLKPOSITION Pos = meshList.GetHeadPosition(); Pos != NULL; ) {
-            QMeshPatch* mesh = (QMeshPatch*)(meshList.GetNext(Pos));
-
-            if (mesh->drawThisPatch == false) continue;
-
-            glBegin(GL_LINES);
-            glLineWidth(1.0);
-
-            for (GLKPOSITION PosEdge = (mesh->GetEdgeList()).GetHeadPosition(); PosEdge != NULL;) {
-                QMeshEdge* edge = (QMeshEdge*)((mesh->GetEdgeList()).GetNext(PosEdge));
-                rr = 0.75; gg = 0.75; bb = 0.75;
-
-                glColor3f(rr, gg, bb);
-                this->drawSingleEdge(edge);
-            }
-            glEnd();
-        }
-    }
-
-    /*------------- Draw EDGE (SUPPORT_RAY)-------------*/
     if (this->meshType == SUPPORT_RAY) {
+        glLineWidth(1.0);
         for (GLKPOSITION Pos = meshList.GetHeadPosition(); Pos != NULL; ) {
             QMeshPatch* mesh = (QMeshPatch*)(meshList.GetNext(Pos));
 
-            //std::cout << "aa" << std::endl;
             if (mesh->drawThisPatch == false) continue;
-            //std::cout << "bb" << std::endl;
-            glLineWidth(1.5);
+            glLineWidth(2.5);
             glBegin(GL_LINES);
 
             for (GLKPOSITION PosEdge = (mesh->GetEdgeList()).GetHeadPosition(); PosEdge != NULL;) {
                 QMeshEdge* edge = (QMeshEdge*)((mesh->GetEdgeList()).GetNext(PosEdge));
 
-                //_changeValueToColor(log10(mesh->max_segment_NUM), -0.001, log10(edge->treeEdge_radius), rr, gg, bb);
-                //_changeValueToColor(mesh->max_height, -0.001, edge->treeEdge_height, rr, gg, bb);
-                _changeValueToColor(sqrt((double)mesh->max_branch_NUM), 0.99, sqrt((double)edge->treeEdge_branch_NUM), rr, gg, bb);
+                float rr, gg, bb;
+                rr = 0.6; gg = 0.6; bb = 0.3;
 
-
-                if (!edge->GetEndPoint()->isUseful_Node_SupportRay
-                    || !edge->GetStartPoint()->isUseful_Node_SupportRay) continue;
-
-                glColor3f(rr, gg, bb);
-                this->drawSingleEdge(edge);
-            }
-            glEnd();
-        }
-    }
-
-    /*------------- Draw SURFACE MESH (TOOL_PATH)-------------*/
-    if (this->meshType == TOOL_PATH) {
-        glLineWidth(2.0);
-        for (GLKPOSITION Pos = meshList.GetHeadPosition(); Pos != NULL; ) {
-            QMeshPatch* mesh = (QMeshPatch*)(meshList.GetNext(Pos));
-
-            if (mesh->drawThisPatch == false) continue;
-
-            glBegin(GL_LINES);
-
-            for (GLKPOSITION PosEdge = (mesh->GetEdgeList()).GetHeadPosition(); PosEdge != NULL;) {
-                QMeshEdge* edge = (QMeshEdge*)((mesh->GetEdgeList()).GetNext(PosEdge));
-                rr = 0.3; gg = 0.3; bb = 0.3;
+                if(!mesh->tree_4Dfm)
+                    _changeValueToColor(sqrt((double)mesh->max_branch_NUM), 0.99, 
+                        sqrt((double)edge->treeEdge_branch_NUM), rr, gg, bb);
 
                 _changeValueToColor(mesh->GetIndexNo(), rr, gg, bb);
-                // show only before the subsumple of waypoints
-                if (edge->isConnectEdge == true) { rr = 1.0; gg = 0.0; bb = 0.0; }
 
                 glColor3f(rr, gg, bb);
+                this->drawSingleEdge(edge);
+            }
+            glEnd();
+        }
+    }
+    if (this->meshType == CH_ENVELOPE) {
+        glLineWidth(1.0);
+        for (GLKPOSITION Pos = meshList.GetHeadPosition(); Pos != NULL; ) {
+            QMeshPatch* mesh = (QMeshPatch*)(meshList.GetNext(Pos));
+
+            if (mesh->drawThisPatch == false) continue;
+            glLineWidth(2.5);
+            glBegin(GL_LINES);
+
+            for (GLKPOSITION PosEdge = (mesh->GetEdgeList()).GetHeadPosition(); PosEdge != NULL;) {
+                QMeshEdge* edge = (QMeshEdge*)((mesh->GetEdgeList()).GetNext(PosEdge));
+
+                float rr, gg, bb;
+                rr = 0.6; gg = 0.6; bb = 0.3;
+
+                glColor3f(rr, gg, bb);
+                this->drawSingleEdge(edge);
+            }
+            glEnd();
+        }
+    }
+    if (this->meshType == TOOL_PATH) {
+        glLineWidth(1.8);
+        for (GLKPOSITION Pos = meshList.GetHeadPosition(); Pos != NULL; ) {
+            QMeshPatch* mesh = (QMeshPatch*)(meshList.GetNext(Pos));
+
+            if (mesh->drawThisPatch == false) continue;
+            float rr, gg, bb;
+
+            glBegin(GL_LINES);
+
+            for (GLKPOSITION PosEdge = (mesh->GetEdgeList()).GetHeadPosition(); PosEdge != NULL;) {
+                QMeshEdge* edge = (QMeshEdge*)((mesh->GetEdgeList()).GetNext(PosEdge));
+
+                _changeValueToColor(mesh->GetIndexNo() + 3, rr, gg, bb);
+                //if (edge->isConnectEdge || edge->isConnectEdge_zigzag) { rr = 0.0; gg = 0.0; bb = 1.0; }
+
+                if (edge->GetStartPoint()->Jump_preSecEnd == false && edge->GetEndPoint()->Jump_nextSecStart == false)
+                {
+                    if (mesh->is_SupportLayer) {
+                        rr = gg = bb = 0.6;
+                    }
+                    else {
+                        rr = 0.75; gg = 1.0; bb = 0.7;
+                    }
+                }
+                else if ((edge->GetStartPoint()->Jump_preSecEnd == true && edge->GetEndPoint()->Jump_nextSecStart == true)
+                    || (edge->GetEndPoint()->Jump_preSecEnd == true && edge->GetStartPoint()->Jump_nextSecStart == true)) {
+                    if (mesh->is_SupportLayer) {
+                        rr = 0.0; gg = 0.4; bb = 0.9;
+                    }
+                    else {
+                        rr = 0.9; gg = 0.4; bb = 0;
+                    }
+                }
+                else {
+
+                }
+
+                if (edge->GetIndexNo() == 0) { rr = 1.0; gg = 0.0; bb = 0.0; }
+                glColor3f(rr, gg, bb);
+
                 this->drawSingleEdge(edge);
             }
             glEnd();
@@ -415,24 +476,72 @@ void PolygenMesh::_buildDrawNodeList()
     glEnable(GL_POINT_SMOOTH);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glPointSize(5.0);
 
-    float rr, gg, bb;
+    if (this->meshType == TET_MODEL) {
+        glBegin(GL_POINTS);
+        for (GLKPOSITION Pos = meshList.GetHeadPosition(); Pos != NULL; ) {
+            QMeshPatch* mesh = (QMeshPatch*)(meshList.GetNext(Pos));
 
-    /*------------- Draw Node (CURVED_LAYER)-------------*/
+            float rr, gg, bb;
+            for (GLKPOSITION PosNode = (mesh->GetNodeList()).GetHeadPosition(); PosNode != NULL;) {
+                QMeshNode* node = (QMeshNode*)((mesh->GetNodeList()).GetNext(PosNode));
+
+                //if (node->inner) continue;
+                rr = 0.5; gg = 0.5; bb = 0.5;
+
+                _changeValueToColor(1.0, 0.0, node->scalarField, rr, gg, bb); // draw guidance field
+
+                //_changeValueToColor(node->overhang_region_idx, rr, gg, bb);
+                if (node->need_Support) { rr = 1.0; gg = 0.25; bb = 0.55; }
+
+                node->SetColor(rr, gg, bb); //install node color to node for rendering
+
+                glColor3f(rr, gg, bb);
+                drawSingleNode(node);
+            }
+        }
+        glEnd();
+    }
+
+    if (this->meshType == SUPPORT_TET_MODEL) {
+        glBegin(GL_POINTS);
+        for (GLKPOSITION Pos = meshList.GetHeadPosition(); Pos != NULL; ) {
+            QMeshPatch* mesh = (QMeshPatch*)(meshList.GetNext(Pos));
+
+            float rr, gg, bb;
+            for (GLKPOSITION PosNode = (mesh->GetNodeList()).GetHeadPosition(); PosNode != NULL;) {
+                QMeshNode* node = (QMeshNode*)((mesh->GetNodeList()).GetNext(PosNode));
+
+                //if (node->inner && !node->model_boundary) continue;
+
+                _changeValueToColor(1.0, 0.0, node->scalarField, rr, gg, bb); // draw guidance field
+                node->SetColor(rr, gg, bb); //install node color to node for rendering
+
+                /*if (node->model_boundary) {
+                    _changeValueToColor(1.0, 0.0, node->scalarField, rr, gg, bb); }*/
+
+                glColor3f(rr, gg, bb);
+
+                drawSingleNode(node);
+            }
+        }
+        glEnd();
+    }
+
     if (this->meshType == CURVED_LAYER) {
-        glPointSize(3.0);
         glBegin(GL_POINTS);
         for (GLKPOSITION Pos = meshList.GetHeadPosition(); Pos != NULL; ) {
             QMeshPatch* mesh = (QMeshPatch*)(meshList.GetNext(Pos));
 
             if (mesh->drawThisPatch == false) continue;
-
+            float rr, gg, bb;
 
             for (GLKPOSITION PosNode = (mesh->GetNodeList()).GetHeadPosition(); PosNode != NULL;) {
                 QMeshNode* node = (QMeshNode*)((mesh->GetNodeList()).GetNext(PosNode));
 
-                rr = 0.65; gg = 0.65; bb = 0.65;
-                if (node->need_Support) { rr = 0.15; gg = 0.95; bb = 0.15; }
+                float rr = gg = bb = 0.8;
+
                 if (mesh->is_SupportLayer && mesh->drawSupportField) {
 
                     if (node->implicitSurface_value >= 0) {
@@ -443,13 +552,6 @@ void PolygenMesh::_buildDrawNodeList()
                     }
                 }
 
-                if(node->GetAttribFlag(0)) { rr = gg = 0.0; bb = 1.0; }
-
-                //Debug use
-                if (node->isHighlight) { rr = 1.0; gg = 0.0; bb = 0.0; }
-                if(node->polyline_node.size()!=0) { rr = 0.0; gg = 1.0; bb = 1.0; }
-                //_changeValueToColor(1.0, 0.0, node->boundaryValue, rr, gg, bb);
-
                 glColor3f(rr, gg, bb);
                 drawSingleNode(node);
             }
@@ -457,99 +559,117 @@ void PolygenMesh::_buildDrawNodeList()
         glEnd();
     }
 
-    /*------------- Draw Node (TET)-------------*/
-    if (this->meshType == TET) {
+    if (this->meshType == SURFACE_MESH) {
+        glBegin(GL_POINTS);
+        for (GLKPOSITION Pos = meshList.GetHeadPosition(); Pos != NULL; ) {
+            QMeshPatch* mesh = (QMeshPatch*)(meshList.GetNext(Pos));
+
+            if (mesh->drawThisPatch == false) continue;
+            float rr, gg, bb;
+
+            for (GLKPOSITION PosNode = (mesh->GetNodeList()).GetHeadPosition(); PosNode != NULL;) {
+                QMeshNode* node = (QMeshNode*)((mesh->GetNodeList()).GetNext(PosNode));
+
+                float rr = gg = bb = 0.8;
+                glColor3f(rr, gg, bb);
+                drawSingleNode(node);
+            }
+        }
+        glEnd();
+    }
+
+    if (this->meshType == CNC_PRT) {
+        glPointSize(10.0);
+        glBegin(GL_POINTS);
+        for (GLKPOSITION Pos = meshList.GetHeadPosition(); Pos != NULL; ) {
+            QMeshPatch* mesh = (QMeshPatch*)(meshList.GetNext(Pos));
+
+            if (mesh->patchName != "nozzle") continue;
+            float rr, gg, bb;
+
+            for (GLKPOSITION PosNode = (mesh->GetNodeList()).GetHeadPosition(); PosNode != NULL;) {
+                QMeshNode* node = (QMeshNode*)((mesh->GetNodeList()).GetNext(PosNode));
+
+                double xx, yy, zz; node->GetCoord3D_last(xx, yy, zz);
+
+                if (xx == 0.0 && yy == 0.0 && zz == 0.0) {
+                    // tip node
+                    rr = 1.0; gg = 0.0; bb = 0.0;
+                    glColor3f(rr, gg, bb);
+                    drawSingleNode(node);
+                }
+            }
+        }
+        glEnd();
+    }
+
+    if (this->meshType == TOOL_PATH) {
         glPointSize(4.0);
         glBegin(GL_POINTS);
         for (GLKPOSITION Pos = meshList.GetHeadPosition(); Pos != NULL; ) {
             QMeshPatch* mesh = (QMeshPatch*)(meshList.GetNext(Pos));
+
+            if (mesh->drawThisPatch == false) continue;
+            float rr, gg, bb;
+
             for (GLKPOSITION PosNode = (mesh->GetNodeList()).GetHeadPosition(); PosNode != NULL;) {
                 QMeshNode* node = (QMeshNode*)((mesh->GetNodeList()).GetNext(PosNode));
 
-                rr = 0.85; gg = 0.85; bb = 0.85;
+                //if (node->resampleChecked == false) continue;
 
-                if (node->inner) continue;
-                if (node->need_Support) { rr = 0.0; gg = 1.0; bb = 0.0; }
+                _changeValueToColor(17, rr, gg, bb);
+                if (node->GetIndexNo() == 0) { rr = 1.0f; gg = 0.0f; bb = 0.0f; }
+                //if (node->resampleChecked == false) { rr = 0.0f; gg = 0.0f; bb = 0.0f; }
+                //else { rr = 1.0f; gg = 0.0f; bb = 1.0f; }
+                //if (node->isZigzag_sideNode) { rr = 0.7f; gg = 0.0f; bb = 0.5f; }      
 
-                if(node->isHighlight) { rr = 0.0; gg = 0.0; bb = 1.0; }
+                glColor3f(rr, gg, bb);
+                //drawSingleNode(node);
+            }
+        }
+        glEnd();
+    }
+
+    if (this->meshType == SUPPORT_RAY) {
+        glBegin(GL_POINTS);
+        for (GLKPOSITION Pos = meshList.GetHeadPosition(); Pos != NULL; ) {
+            QMeshPatch* mesh = (QMeshPatch*)(meshList.GetNext(Pos));
+
+            if (mesh->drawThisPatch == false) continue;
+            float rr, gg, bb;
+
+            for (GLKPOSITION PosNode = (mesh->GetNodeList()).GetHeadPosition(); PosNode != NULL;) {
+                QMeshNode* node = (QMeshNode*)((mesh->GetNodeList()).GetNext(PosNode));
+
+                //if (!node->isUseful_Node_SupportRay) continue;
+
+                rr = 0.0; gg = 0.50; bb = 0.95;
+                if (node->isOringin) { rr = 0.15; gg = 0.95; bb = 0.15; }
+
+                //for tree-like structure debug
+                //if (node->is_Host) { rr = 1.0; gg = 0.0; bb = 0.0; }
+                //if (node->isOringin) { rr = 0.15; gg = 0.95; bb = 0.15; }
+                //if (node->is_virtual_Host) { rr = 0.0; gg = 1.0; bb = 0.0; }
+                //else if (!node->is_Processed) { rr = 0.0; gg = 0.0; bb = 0.0; }
+
+                // show grid_block_index color
+                if (node->grid_blk_ind_i % 2 == 0) {
+                    if (node->grid_blk_ind_j % 2 == 0) { rr = 0.0; gg = 1.0; bb = 0.0; }
+                    else { rr = 0.0; gg = 0.0; bb = 1.0; }
+                }
+                else {
+                    if (node->grid_blk_ind_j % 2 == 0) { rr = 1.0; gg = 0.0; bb = 1.0; }
+                    else { rr = 1.0; gg = 0.75; bb = 0.0; }
+                }
+
+                
+                if(node->is_treeNode_processed) { rr = 0.8; gg = 0.8; bb = 0.8; }
+                else { rr = 1.0; gg = 0.0; bb = 0.0; }
+
+                //_changeValueToColor(node->treeNode_weight, rr, gg, bb);
                 
                 glColor3f(rr, gg, bb);
 
-                drawSingleNode(node);
-            }
-        }
-        glEnd();
-    }
-
-    /*------------- Draw Node (UNDEFINED) -------------*/
-    if (this->meshType == UNDEFINED || this->meshType == CAD_PARTS) {
-        glPointSize(1.0);
-        glBegin(GL_POINTS);
-        for (GLKPOSITION Pos = meshList.GetHeadPosition(); Pos != NULL; ) {
-            QMeshPatch* mesh = (QMeshPatch*)(meshList.GetNext(Pos));
-            for (GLKPOSITION PosNode = (mesh->GetNodeList()).GetHeadPosition(); PosNode != NULL;) {
-                QMeshNode* node = (QMeshNode*)((mesh->GetNodeList()).GetNext(PosNode));
-
-                rr = 0.25; gg = 0.25; bb = 0.25;
-                glColor3f(rr, gg, bb);
-
-                drawSingleNode(node);
-            }
-        }
-        glEnd();
-    }
-
-    /*------------- Draw Node (SUPPORT_RAY) -------------*/
-    if (this->meshType == SUPPORT_RAY) {
-        glPointSize(2.0);
-        glBegin(GL_POINTS);
-        for (GLKPOSITION Pos = meshList.GetHeadPosition(); Pos != NULL; ) {
-            QMeshPatch* mesh = (QMeshPatch*)(meshList.GetNext(Pos));
-
-            if (mesh->drawThisPatch == false) continue;
-
-            for (GLKPOSITION PosNode = (mesh->GetNodeList()).GetHeadPosition(); PosNode != NULL;) {
-                QMeshNode* node = (QMeshNode*)((mesh->GetNodeList()).GetNext(PosNode));
-
-                if (!node->isUseful_Node_SupportRay) continue;
-
-                //if (!node->isHighlight) continue;
-
-                rr = 0.05; gg = 0.05; bb = 0.95;
-                if (node->isHighlight) { rr = 1.0; gg = 0.0; bb = 0.0; }
-
-                //for tree-like structure debug
-                /*if (node->is_Host) { rr = 1.0; gg = 0.0; bb = 0.0; }
-                if (node->isOringin) { rr = 0.15; gg = 0.95; bb = 0.15; }
-                if (node->is_virtual_Host) { rr = 0.0; gg = 1.0; bb = 0.0; }
-                else if (!node->is_Processed) { rr = 0.0; gg = 0.0; bb = 0.0; }*/
-                glColor3f(rr, gg, bb);
-
-                drawSingleNode(node);
-            }
-        }
-        glEnd();
-    }
-
-    /*------------- Draw Node (TOOL_PATH) -------------*/
-    if (this->meshType == TOOL_PATH) {
-        glPointSize(5.0);
-        glBegin(GL_POINTS);
-        for (GLKPOSITION Pos = meshList.GetHeadPosition(); Pos != NULL; ) {
-            QMeshPatch* mesh = (QMeshPatch*)(meshList.GetNext(Pos));
-
-            if (mesh->drawThisPatch == false) continue;
-
-            for (GLKPOSITION PosNode = (mesh->GetNodeList()).GetHeadPosition(); PosNode != NULL;) {
-                QMeshNode* node = (QMeshNode*)((mesh->GetNodeList()).GetNext(PosNode));
-
-                if (node->resampleChecked == false) continue;
-
-                _changeValueToColor(mesh->GetIndexNo() + 1, rr, gg, bb);
-
-                if (node->GetIndexNo() == 0) { rr = 1.0f; gg = 0.0f; bb = 0.0f; }
-
-                glColor3f(rr, gg, bb);
                 drawSingleNode(node);
             }
         }
@@ -564,10 +684,9 @@ void PolygenMesh::_buildDrawProfileList()
     if (meshList.GetCount() == 0) return;
 
     glNewList(m_drawListID + 3, GL_COMPILE);
-    glLineWidth(1.5);
     //glDisable(GL_LIGHTING);
 
-    if (this->meshType == TET) {
+    if (this->meshType == TET_MODEL) {
         for (GLKPOSITION PosMesh = meshList.GetHeadPosition(); PosMesh != NULL;) {
             QMeshPatch* mesh = (QMeshPatch*)(meshList.GetNext(PosMesh));
 
@@ -576,42 +695,114 @@ void PolygenMesh::_buildDrawProfileList()
                 QMeshEdge* Edge = (QMeshEdge*)(mesh->GetEdgeList().GetNext(Pos));
                 edgeLength += Edge->CalLength();
             }
-            edgeLength /= mesh->GetEdgeNumber(); // average edge length    
+            edgeLength /= mesh->GetEdgeNumber(); // average edge length
 
+            glLineWidth(3);
             for (GLKPOSITION Pos = mesh->GetTetraList().GetHeadPosition(); Pos;) {
                 QMeshTetra* Tet = (QMeshTetra*)mesh->GetTetraList().GetNext(Pos);
 
                 if (Tet->GetIndexNo() % 20 != 0) continue;
+                //if (Tet->GetFaceRecordPtr(1)->inner &&
+                //    Tet->GetFaceRecordPtr(2)->inner &&
+                //    Tet->GetFaceRecordPtr(3)->inner &&
+                //    Tet->GetFaceRecordPtr(4)->inner
+                //    ) continue;
+                //if (!Tet->GetFaceRecordPtr(1)->needSupport &&
+                //    !Tet->GetFaceRecordPtr(2)->needSupport &&
+                //    !Tet->GetFaceRecordPtr(3)->needSupport &&
+                //    !Tet->GetFaceRecordPtr(4)->needSupport
+                //    ) continue;
 
-                glLineWidth(0.5);
+                float rr, gg, bb;
+                rr = gg = bb = 0.4;
+                double length;
+                Eigen::Vector3d n = Eigen::Vector3d::Zero();
+
+                if (mesh->drawStressField) { 
+                    
+                    n = Tet->tau_max;  
+                    if (Tet->isTensileorCompressSelect) {
+                        //if (Tet->sigma_max < 0) { rr = 0.2, gg = 0.2, bb = 0.9; } //Compress region
+                        //else { rr = 0.9, gg = 0.2, bb = 0.2; } //tensile region
+
+                        _changeValueToColor(
+                            mesh->maxPrincipleStressValue, mesh->minPrincipleStressValue, 
+                            Tet->sigma_max, rr, gg, bb);
+                    }
+                    else {
+                        continue;
+                    } 
+                }
+                else { n = Tet->vectorField; }
 
                 double x, y, z;
-                double length = edgeLength; // give the average edge length for vector length
-                float  rr, gg, bb;
-                double n[3];
-
                 Tet->CalCenterPos(x, y, z);
-                for (int i = 0; i < 3; i++) n[i] = Tet->vectorField(i);
+                length = edgeLength;
 
-                double n_length = sqrt(n[0] * n[0] + n[1] * n[1] + n[2] * n[2]);
-                if (n_length < 0.001) {
-                    //std::cout << "error Vector Field value, Index: " << Tet->GetIndexNo() << std::endl;
-                    continue; // not draw the short field vectors
-                }
-
-                rr = 0.31f, gg = 0.58f, bb = 0.81f;// default color
-                length *= 1.5;
+                /*--------Draw vector field--------*/
+                if (n.norm() < 0.01) continue;
 
                 //---- Draw Array (BODY) ----//
                 glColor3f(rr, gg, bb);
+
                 glBegin(GL_LINES);
                 glVertex3d(x, y, z); glVertex3d(x + n[0] * length, y + n[1] * length, z + n[2] * length);
                 glEnd();
 
-                //---- Draw Array (TIP) ----//
-                double tipColor[3] = { rr,gg,bb };
+                //---- Draw Array (TIP) ----//   
                 double endPoint[3] = { x + n[0] * length, y + n[1] * length, z + n[2] * length };
-                drawSingleArrayTip(endPoint, n, length, tipColor);
+                double n_temp[3]; for (int i = 0; i < 3; i++) n_temp[i] = n(i);
+                drawSingleArrayTip(endPoint, n_temp, length);
+            }
+        }
+    }
+
+    if (this->meshType == SUPPORT_TET_MODEL) {
+        for (GLKPOSITION PosMesh = meshList.GetHeadPosition(); PosMesh != NULL;) {
+            QMeshPatch* mesh = (QMeshPatch*)(meshList.GetNext(PosMesh));
+
+            double edgeLength = 0;
+            for (GLKPOSITION Pos = mesh->GetEdgeList().GetHeadPosition(); Pos != NULL;) {
+                QMeshEdge* Edge = (QMeshEdge*)(mesh->GetEdgeList().GetNext(Pos));
+                edgeLength += Edge->CalLength();
+            }
+            edgeLength /= mesh->GetEdgeNumber(); // average edge length
+
+            glLineWidth(0.5);
+            for (GLKPOSITION Pos = mesh->GetTetraList().GetHeadPosition(); Pos;) {
+                QMeshTetra* Tet = (QMeshTetra*)mesh->GetTetraList().GetNext(Pos);
+                float rr, gg, bb;
+                rr = 0.0;  gg = bb = 1.0;
+
+                if (Tet->isVectorSource) {
+                    if (Tet->GetIndexNo() % 5 != 0) continue;
+                    rr = 1.0;  gg = 0.4;  bb = 0.3;
+                }
+                else {
+                    if (Tet->GetIndexNo() % 50 != 0) continue;
+                    rr = 0.0;  gg = bb = 1.0;
+                }
+
+                double x, y, z;
+                Tet->CalCenterPos(x, y, z);
+
+                double n[3], length;
+                length = edgeLength;
+
+                /*--------Draw vector field--------*/
+                if (Tet->vectorField.norm() < 0.01) continue;
+                for (int i = 0; i < 3; i++) n[i] = Tet->vectorField(i);
+
+                //---- Draw Array (BODY) ----//
+                glColor3f(rr, gg, bb);
+
+                glBegin(GL_LINES);
+                glVertex3d(x, y, z); glVertex3d(x + n[0] * length, y + n[1] * length, z + n[2] * length);
+                glEnd();
+
+                //---- Draw Array (TIP) ----//   
+                double endPoint[3] = { x + n[0] * length, y + n[1] * length, z + n[2] * length };
+                drawSingleArrayTip(endPoint, n, length);
             }
         }
     }
@@ -622,9 +813,8 @@ void PolygenMesh::_buildDrawProfileList()
 void PolygenMesh::_buildDrawFaceNormalList()
 {
     if (meshList.GetCount()==0) return;
-    if (this->meshType == CAD_PARTS) return;
     if (this->meshType == SUPPORT_RAY) return;
-    if (this->meshType == TOOL_PATH) return;
+    if (this->meshType == CNC_PRT) return;
 
     glNewList(m_drawListID+4, GL_COMPILE);
     glDisable(GL_LIGHTING);
@@ -633,7 +823,7 @@ void PolygenMesh::_buildDrawFaceNormalList()
 
     glLineWidth(1.0);
 
-    if (this->meshType == TET) {
+    if (this->meshType == TET_MODEL) {
 
         glBegin(GL_LINES);
         for (GLKPOSITION meshPos = meshList.GetHeadPosition(); meshPos != NULL;) {
@@ -658,36 +848,12 @@ void PolygenMesh::_buildDrawFaceNormalList()
         glEnd();
 
     }
-    else if (this->meshType == CURVED_LAYER) {
-        glBegin(GL_LINES);
-        for (GLKPOSITION meshPos = meshList.GetHeadPosition(); meshPos != NULL;) {
-            QMeshPatch* mesh = (QMeshPatch*)(meshList.GetNext(meshPos));
-
-            if (mesh->drawThisPatch == false) continue;
-
-            double length = 1.0;
-
-            for (GLKPOSITION Pos = mesh->GetFaceList().GetHeadPosition(); Pos != NULL;) {
-                QMeshFace* face = (QMeshFace*)(mesh->GetFaceList().GetNext(Pos));
-               /* double x, y, z;
-                face->CalCenterPos(x, y, z);
-                glVertex3d(x, y, z);
-                glVertex3d(x + face->m_desiredNormal[0] * length, y + face->m_desiredNormal[1] * length, z + face->m_desiredNormal[2] * length);
-                */
-                double x, y, z, nx, ny, nz;
-                face->CalCenterPos(x, y, z);
-                face->CalPlaneEquation();
-                face->GetNormal(nx, ny, nz);
-                glVertex3d(x, y, z);
-                glVertex3d(x + nx * length, y + ny * length, z + nz * length);
-            }
-        }
-        glEnd();
-    }
     else {
         glBegin(GL_LINES);
         for (GLKPOSITION meshPos = meshList.GetHeadPosition(); meshPos != NULL;) {
             QMeshPatch* mesh = (QMeshPatch*)(meshList.GetNext(meshPos));
+
+            if (this->meshType == CURVED_LAYER && mesh->drawThisPatch == false) continue;
 
             QMeshEdge* edge = (QMeshEdge*)mesh->GetEdgeList().GetHead();
             double length = edge->CalLength();
@@ -710,37 +876,34 @@ void PolygenMesh::_buildDrawFaceNormalList()
 void PolygenMesh::_buildDrawNodeNormalList()
 {
     if (meshList.GetCount()==0) return;
-    if (this->meshType == CAD_PARTS) return;
     if (this->meshType == SUPPORT_RAY) return;
+    if (this->meshType == CNC_PRT) return;
 
-    glNewList(m_drawListID + 5, GL_COMPILE);
+    glNewList(m_drawListID+5, GL_COMPILE);
     glDisable(GL_LIGHTING);
 
     glColor3f(0.0, 0.5, 0.0);
 
     glLineWidth(1.0);
 
-    if (this->meshType == CURVED_LAYER) {
-
-        //if (this->getModelName() != "Layers") return;
-
+    if (this->meshType == TOOL_PATH) {
         glBegin(GL_LINES);
         for (GLKPOSITION meshPos = meshList.GetHeadPosition(); meshPos != NULL;) {
             QMeshPatch* mesh = (QMeshPatch*)(meshList.GetNext(meshPos));
 
             if (mesh->drawThisPatch == false) continue;
 
+            QMeshEdge* edge = (QMeshEdge*)mesh->GetEdgeList().GetHead();
+            //double length = edge->CalLength();
             double length = 1.0;
             for (GLKPOSITION Pos = mesh->GetNodeList().GetHeadPosition(); Pos != NULL;) {
                 QMeshNode* node = (QMeshNode*)(mesh->GetNodeList().GetNext(Pos));
-                /*double x, y, z;
+
+                if (node->resampleChecked == false) continue;
+
+                double x, y, z;
                 node->GetCoord3D(x, y, z);
-                glVertex3d(x, y, z);
-                glVertex3d(x + node->m_desiredNormal[0] * length, y + node->m_desiredNormal[1] * length, z + node->m_desiredNormal[2] * length);
-                */
-                double x, y, z, n[3];
-                node->GetCoord3D(x, y, z);
-                node->CalNormal(n);
+                double n[3];
                 node->GetNormal(n[0], n[1], n[2]);
 
                 glVertex3d(x, y, z);
@@ -749,31 +912,13 @@ void PolygenMesh::_buildDrawNodeNormalList()
         }
         glEnd();
     }
-    else if (this->meshType == TOOL_PATH) {
+    else {
 
         glBegin(GL_LINES);
         for (GLKPOSITION meshPos = meshList.GetHeadPosition(); meshPos != NULL;) {
             QMeshPatch* mesh = (QMeshPatch*)(meshList.GetNext(meshPos));
 
-            if (mesh->drawThisPatch == false) continue;
-
-            double length = 1.0;
-            for (GLKPOSITION Pos = mesh->GetNodeList().GetHeadPosition(); Pos != NULL;) {
-                QMeshNode* node = (QMeshNode*)(mesh->GetNodeList().GetNext(Pos));
-                double x, y, z, n[3];
-                node->GetCoord3D(x, y, z);
-                node->GetNormal(n[0], n[1], n[2]);
-                glVertex3d(x, y, z);
-                glVertex3d(x + n[0] * length, y + n[1] * length, z + n[2] * length);
-            }
-        }
-        glEnd();
-
-    }
-    else{
-        glBegin(GL_LINES);
-        for (GLKPOSITION meshPos = meshList.GetHeadPosition(); meshPos != NULL;) {
-            QMeshPatch* mesh = (QMeshPatch*)(meshList.GetNext(meshPos));
+            if (this->meshType == CURVED_LAYER && mesh->drawThisPatch == false) continue;
 
             QMeshEdge* edge = (QMeshEdge*)mesh->GetEdgeList().GetHead();
             double length = edge->CalLength();
@@ -796,8 +941,8 @@ void PolygenMesh::_buildDrawNodeNormalList()
 }
 
 void PolygenMesh::drawOriginalCoordinate() {
-	double axisLeng = 100.0;
-	glLineWidth(5.0);
+	double axisLeng = 30.0;
+	glLineWidth(2.0);
 	glBegin(GL_LINES);
 
 	// X-axis - Red Color
@@ -1005,6 +1150,7 @@ void PolygenMesh::ImportTETFile(char *filename, std::string modelName)
 		meshList.AddTail(newMesh);
 		computeRange();
 		setModelName(modelName);
+        newMesh->patchName = modelName;
 	}
 	else
 		delete newMesh;
@@ -1051,7 +1197,7 @@ void PolygenMesh::drawSingleFace(QMeshFace* face) {
     }
 }
 
-void PolygenMesh::drawSingleArrayTip(double pp[3], double dir[3], double arrowLength, double tipColor[3]) {
+void PolygenMesh::drawSingleArrayTip(double pp[3], double dir[3], double arrowLength) {
 
     double bone_hight = 0.3 * arrowLength;
     double bone_radius = 0.06 * arrowLength;
@@ -1076,7 +1222,7 @@ void PolygenMesh::drawSingleArrayTip(double pp[3], double dir[3], double arrowLe
 
     glBegin(GL_TRIANGLES);
 
-    glColor3f(tipColor[0], tipColor[1], tipColor[2]);
+    glColor3f(0.9, 0.2, 0.4);
 
     glVertex3d(pp1(0), pp1(1), pp1(2));
     glVertex3d(pp2(0), pp2(1), pp2(2));

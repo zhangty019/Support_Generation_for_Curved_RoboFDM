@@ -873,7 +873,7 @@ bool QMeshPatch::inputOBJFile(char* filename, bool bOBTFile)
         edge->GetStartPoint()->SetAttribFlag(0);
         edge->GetEndPoint()->SetAttribFlag(0);
     }
-	std::cout << "Finish input obj" << std::endl;
+	//std::cout << "Finish input obj" << std::endl;
     return true;
 }
 
@@ -1531,6 +1531,7 @@ void QMeshPatch::ComputeBoundingBox(double &xmin, double &ymin, double &zmin, do
     }
 }
 
+//xmin xmax ymin ymax zmin zmax
 void QMeshPatch::ComputeBoundingBox(double boundingBox[])
 {
     GLKPOSITION PosMesh;
@@ -1551,5 +1552,120 @@ void QMeshPatch::ComputeBoundingBox(double boundingBox[])
         if (zz<boundingBox[4]) boundingBox[4]=zz;
         if (zz>boundingBox[5]) boundingBox[5]=zz;
     }
+}
+
+void QMeshPatch::CreateCube(double boundingBox[]) {
+
+	/* get the VERTEX Table of cube */
+	Eigen::MatrixXd V = Eigen::MatrixXd::Zero(8, 3);
+	/* get the FACE Table of cube */
+	Eigen::MatrixXi F = Eigen::MatrixXi::Zero(12, 3);
+
+	//xmin xmax ymin ymax zmin zmax
+	double xmin = boundingBox[0];	double xmax = boundingBox[1];
+	double ymin = boundingBox[2];	double ymax = boundingBox[3]; 
+	double zmin = boundingBox[4];	double zmax = boundingBox[5];
+	//build the vertex table
+	V.row(0) << xmin, ymin, zmin;
+	V.row(1) << xmax, ymin, zmin;
+	V.row(2) << xmax, ymax, zmin;
+	V.row(3) << xmin, ymax, zmin;
+	V.row(4) << xmin, ymin, zmax;
+	V.row(5) << xmax, ymin, zmax;
+	V.row(6) << xmax, ymax, zmax;
+	V.row(7) << xmin, ymax, zmax;
+	//std::cout << "\n-----------\nV:\n" << V << std::endl;
+	 
+	//build the face table (start from 0)
+	F.row(0) << 0, 1, 4;
+	F.row(1) << 4, 1, 5;
+	F.row(2) << 3, 7, 2;
+	F.row(3) << 2, 7, 6;
+	F.row(4) << 1, 2, 5;
+	F.row(5) << 5, 2, 6;
+	F.row(6) << 4, 7, 0;
+	F.row(7) << 0, 7, 3;
+	F.row(8) << 4, 5, 6;
+	F.row(9) << 4, 6, 7;
+	F.row(10) << 0, 2, 1;
+	F.row(11) << 0, 3, 2;
+	//std::cout << "\n-----------\nF:\n" << F << std::endl;
+	
+	// build new mesh from vertex table and face table
+	float* nodeTable;
+	nodeTable = (float*)malloc(sizeof(float) * V.rows() * 3);
+	for (int j = 0; j < V.rows(); j++) {
+		for (int i = 0; i < 3; i++) nodeTable[j * 3 + i] = (float)V(j, i);
+	}
+	unsigned int* faceTable;
+	faceTable = (unsigned int*)malloc(sizeof(unsigned int) * F.rows() * 3);
+	for (int j = 0; j < F.rows(); j++) {
+		for (int i = 0; i < 3; i++) faceTable[j * 3 + i] = F(j, i);
+	}
+
+	this->constructionFromVerFaceTable(V.rows(), nodeTable, F.rows(), faceTable);
+}
+
+bool QMeshPatch::inputPosNorFile(char* filename) {
+
+	FILE* fp;
+	char linebuf[2048];
+	GLKPOSITION Pos;
+	QMeshNode* node, * startNode, * endNode;
+	QMeshEdge* edge;
+	QMeshNode** nodeArray;
+	float xx, yy, zz, nx, ny, nz;
+
+	fp = fopen(filename, "r");
+	if (!fp) {
+		printf("==================================================\n");
+		printf("Can not open the data file - Waypoint File Import!\n");
+		printf("==================================================\n");
+		return false;
+	}
+	ClearAll();
+
+	while (true) {
+		fgets(linebuf, 255, fp);
+		if (feof(fp)) break;
+		//cout << linebuf << endl;
+		sscanf(linebuf, "%f %f %f %f %f %f\n", &xx, &yy, &zz, &nx, &ny, &nz);
+		node = new QMeshNode;
+		node->SetIndexNo(nodeList.GetCount()); // start from 0
+		node->resampleChecked = true;
+		node->SetMeshPatchPtr(this);
+		node->SetCoord3D(xx, yy, zz);
+		node->SetNormal(nx, ny, nz);
+		node->m_printPos << xx, yy, zz;
+		node->m_printNor << nx, ny, nz;
+
+		nodeList.AddTail(node);
+	}
+	fclose(fp);
+
+	nodeArray = new QMeshNode * [nodeList.GetCount()];
+	int i = 0;
+	for (Pos = nodeList.GetHeadPosition(); Pos != NULL; ++i) {
+		node = (QMeshNode*)(nodeList.GetNext(Pos));
+		nodeArray[i] = node;
+	}
+
+	for (i = 0; i < nodeList.GetCount() - 1; i++) {
+		edge = NULL;
+		startNode = nodeArray[i];
+		endNode = nodeArray[i + 1];
+		edge = new QMeshEdge;
+		edge->SetMeshPatchPtr(this);
+		edge->SetStartPoint(startNode);
+		edge->SetEndPoint(endNode);
+		edge->SetIndexNo(edgeList.GetCount()); // start from 0
+		edgeList.AddTail(edge);
+		//std::cout << "edge length" << edge->CalLength() << std::endl;
+	}
+
+	delete[]nodeArray;
+	fclose(fp);
+	//std::cout << "Finish input Waypoint" << std::endl;
+	return true;
 }
 

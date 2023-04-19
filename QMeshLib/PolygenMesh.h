@@ -14,13 +14,14 @@
 
 typedef enum mesh_type {
     UNDEFINED,
-    //for RoboSYS
-    TET,
+    TET_MODEL,
+    SURFACE_MESH,
     CURVED_LAYER,
     TOOL_PATH,
-    CAD_PARTS,
-    VOXEL_MESH,
-    SUPPORT_RAY
+    CNC_PRT,
+    SUPPORT_RAY,
+    SUPPORT_TET_MODEL,
+    CH_ENVELOPE
 };
 
 class PolygenMesh : public GLKEntity
@@ -73,8 +74,8 @@ public:
     void drawSingleEdge(QMeshEdge* edge);
     void drawSingleNode(QMeshNode* node);
     void drawSingleFace(QMeshFace* face);
+    void drawSingleArrayTip(double pp[3], double dir[3], double arrowLength);
 	void drawOriginalCoordinate();
-    void drawSingleArrayTip(double pp[3], double dir[3], double arrowLength, double tipColor[3]);
 
     void _changeValueToColor(int nType, float & nRed, float & nGreen, float & nBlue);
     void _changeValueToColor(double maxValue, double minValue, double Value,
@@ -83,13 +84,7 @@ public:
     void setModelName(std::string name) {modelName=name;};
     void setTransparent() {isTransparent=true;};
     void setEdgeColor() {edgeColor=true;};
-    std::string getModelName() { return modelName; };
-
-    //used for voxel
-    double voxelSize;
-    bool voxelOrderComputed = false;
-    //used for support Ray clear
-    //bool Func_Switch_supportRaySelection = false;
+    std::string getModelName() {return modelName;};
 
 private:
     std::string modelName;

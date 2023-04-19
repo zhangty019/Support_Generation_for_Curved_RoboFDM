@@ -116,82 +116,22 @@ void InteractiveTool::_selectNodes(QEvent *event, mouse_event_type event_type)
     yp[pointNum-1] = pGLK->m_drawPolylinePoints.at(0).y();
     GLKGeometry geo;
 
-	// tianyu 2020-11-15
-	PolygenMesh* polygen_supportRay = NULL;
-	QMeshPatch* patch_supportRay = NULL;
-
-	for (GLKPOSITION pos = polygenList->GetHeadPosition(); pos != nullptr;) {
-		PolygenMesh* thisMesh = (PolygenMesh*)polygenList->GetNext(pos);
-		if (thisMesh->meshType == SUPPORT_RAY)
-			polygen_supportRay = thisMesh;
-	}
-	if (polygen_supportRay == NULL) { printf("There is no SUPPORT_RAY patch! \n"); return; }
-
-	patch_supportRay = (QMeshPatch*)polygen_supportRay->GetMeshList().GetHead();
-
-	for (GLKPOSITION Pos = patch_supportRay->GetNodeList().GetHeadPosition(); Pos;) {
-		QMeshNode* support_Node = (QMeshNode*)patch_supportRay->GetNodeList().GetNext(Pos);
-
+	PolygenMesh *polygen = (PolygenMesh*)polygenList->GetHead();
+	QMeshPatch *patch = (QMeshPatch*)polygen->GetMeshList().GetHead();
+	for (GLKPOSITION Pos = patch->GetNodeList().GetHeadPosition(); Pos != NULL;)
+	{
+		QMeshNode* TempNode = (QMeshNode*)patch->GetNodeList().GetNext(Pos);
 		double xx, yy, zz, sx, sy;
-		support_Node->GetCoord3D(xx, yy, zz);
-
-		if (!support_Node->deselect_origin_of_RAY) {
-			if (support_Node->isOringin) continue;
-		}
-		else {
-			if (!support_Node->isOringin) continue;
-		}
-
+		TempNode->GetCoord3D(xx, yy, zz);
 		pGLK->wcl_to_screen(xx, yy, zz, sx, sy);
 		if (geo.JugPointInsideOrNot(pointNum, xp, yp, sx, sy)) {
-			support_Node->isUseful_Node_SupportRay = false;
+			if(isSelect == false){
+				TempNode->selected = true;
+			}
+			else TempNode->selected = false;
 		}
 	}
 
-	// tianyu 2020-12-08 // pick host node of TET support surface
-	PolygenMesh* polygen_tet = NULL;
-	QMeshPatch* patch_tet = NULL;
-
-	for (GLKPOSITION pos = polygenList->GetHeadPosition(); pos != nullptr;) {
-		PolygenMesh* thisMesh = (PolygenMesh*)polygenList->GetNext(pos);
-		if (thisMesh->meshType == TET)
-			polygen_tet = thisMesh;
-	}
-	if (polygen_tet == NULL) { printf("There is no TET patch! \n"); return; }
-
-	patch_tet = (QMeshPatch*)polygen_tet->GetMeshList().GetHead();
-
-	for (GLKPOSITION Pos = patch_tet->GetNodeList().GetHeadPosition(); Pos;) {
-		QMeshNode* tet_Node = (QMeshNode*)patch_tet->GetNodeList().GetNext(Pos);
-
-		if (tet_Node->inner) continue;
-		if (!tet_Node->need_Support) continue;
-
-		double xx, yy, zz, sx, sy;
-		tet_Node->GetCoord3D(xx, yy, zz);
-
-		pGLK->wcl_to_screen(xx, yy, zz, sx, sy);
-		if (geo.JugPointInsideOrNot(pointNum, xp, yp, sx, sy)) {
-			std::cout << "selected tet node: index: "<< tet_Node->GetIndexNo() << std::endl;
-		}
-	}
-
-	//PolygenMesh *polygen = (PolygenMesh*)polygenList->GetHead();
-	//QMeshPatch *patch = (QMeshPatch*)polygen->GetMeshList().GetHead();
-	//for (GLKPOSITION Pos = patch->GetNodeList().GetHeadPosition(); Pos != NULL;)
-	//{
-	//	QMeshNode* TempNode = (QMeshNode*)patch->GetNodeList().GetNext(Pos);
-	//	double xx, yy, zz, sx, sy;
-	//	TempNode->GetCoord3D(xx, yy, zz);
-	//	pGLK->wcl_to_screen(xx, yy, zz, sx, sy);
-	//	if (geo.JugPointInsideOrNot(pointNum, xp, yp, sx, sy)) {
-	//		if(isSelect == false){
-	//			TempNode->selected = true;
-	//		}
-	//		else TempNode->selected = false;
-	//	}
-	//}
-	// END
 	delete []xp;	delete []yp;
 }
 

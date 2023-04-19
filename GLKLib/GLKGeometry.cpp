@@ -1293,31 +1293,6 @@ void GLKGeometry::RotatePointAlongVector(double px, double py, double pz,
 	px1 += x1;	py1 += y1;	pz1 += z1;
 }
 
-void GLKGeometry::RotateAroundVector(double vecToBeRotated[], double rotAxis[], double angle)
-{
-	double px, py, pz, costheta, sintheta;
-
-	px = py = pz = 0.0;
-	costheta = cos(DEGREE_TO_ROTATE(angle));
-	sintheta = sin(DEGREE_TO_ROTATE(angle));
-
-	px += (costheta + (1 - costheta) * rotAxis[0] * rotAxis[0]) * vecToBeRotated[0];
-	px += ((1 - costheta) * rotAxis[0] * rotAxis[1] - rotAxis[2] * sintheta) * vecToBeRotated[1];
-	px += ((1 - costheta) * rotAxis[0] * rotAxis[2] + rotAxis[1] * sintheta) * vecToBeRotated[2];
-
-	py += ((1 - costheta) * rotAxis[0] * rotAxis[1] + rotAxis[2] * sintheta) * vecToBeRotated[0];
-	py += (costheta + (1 - costheta) * rotAxis[1] * rotAxis[1]) * vecToBeRotated[1];
-	py += ((1 - costheta) * rotAxis[1] * rotAxis[2] - rotAxis[0] * sintheta) * vecToBeRotated[2];
-
-	pz += ((1 - costheta) * rotAxis[0] * rotAxis[2] - rotAxis[1] * sintheta) * vecToBeRotated[0];
-	pz += ((1 - costheta) * rotAxis[1] * rotAxis[2] + rotAxis[0] * sintheta) * vecToBeRotated[1];
-	pz += (costheta + (1 - costheta) * rotAxis[2] * rotAxis[2]) * vecToBeRotated[2];
-
-	vecToBeRotated[0] = px;
-	vecToBeRotated[1] = py;
-	vecToBeRotated[2] = pz;
-}
-
 void GLKGeometry::QuickSort(int pArr[], int d, int h, bool bAscending)
 {
 	int i,j;

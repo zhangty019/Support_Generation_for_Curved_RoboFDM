@@ -9,19 +9,11 @@
 #include <omp.h>
 #include <QTimer>
 #include <QLabel>
+#include "supportGene.h"
 
-//#define PI		3.141592654
-//#define DEGREE_TO_ROTATE(x)		0.0174532922222*x
-//#define ROTATE_TO_DEGREE(x)		57.295780490443*x
-
-#include "../QMeshLib/BSPTree.h"
-#include "../QMeshLib/QMeshVoxel.h"
-
-#include "../QMeshLib/BSPTreeOperation.h"
-#include "../QMeshLib/QMeshVoxelOperation.h"
-#include "../QMeshLib/VOXSetStructure.h"
-
-#include "supportGeneration.h"
+#define PI		3.141592654
+#define DEGREE_TO_ROTATE(x)		0.0174532922222*x
+#define ROTATE_TO_DEGREE(x)		57.295780490443*x
 
 using namespace std;
 
@@ -49,7 +41,7 @@ private:
 
     /* add for Gcode generation */
     //QTimer Gcode_timer; //Gcode Simulation timer
-    //int gocodetimerItertime;
+    //int Gcode_line_ind;
     //int simuLayerInd;
     //Eigen::MatrixXf Gcode_Table;
     //unsigned int operationTime = 0;
@@ -59,34 +51,28 @@ private:
 private:
     void createActions();
     void createTreeView();
-	void showTetraDeformationRatio();
-	void MoveHandleRegion();
-	void QTgetscreenshoot();
 
     PolygenMesh *getSelectedPolygenMesh();
 
     QSignalMapper *signalMapper;
     QStandardItemModel *treeModel;
 
-private:// functions for support Opt.
-    void _get_FileName(string dirctory, vector<string>& fileNameCell, bool onlyRead, bool onlyInit);
-    void _modifyCoord(QMeshPatch* patchFile);
+    supportGene* supportOperator;
 
-    PolygenMesh* _detectPolygenMesh(mesh_type type, std::string name, bool detectType);
+private:
     PolygenMesh* _buildPolygenMesh(mesh_type type, std::string name);
-
-    /*This is for TetModel and vectorField input*/
-    void _read_TET_vectorField();
-    void _read_platform();
-
-    // for SupportRAY collection
-    supportGeneration* supportGene = NULL;
-    bool is_TET_surface_Ray = false;
-    bool is_TET_surface_polyline = false;
-    bool is_TET_surface_tree = false;
-    bool is_TET_surface_tree_new = true;
-    bool is_polyline = false;
-    //END
+    PolygenMesh* _detectPolygenMesh(mesh_type type);
+    QMeshPatch* _detectPolygenMesh(mesh_type type, std::string patch_name);
+    void _update_Position_Orientation_Parameter();
+    void _setParameter_4_Rot_and_Mov(
+        double Xmove, double Ymove, double Zmove,
+        double Xrot, double Yrot, double Zrot);
+    void _rot_And_Move_Model(QMeshPatch* m_tetModel, 
+        double xRot, double yRot, double zRot,
+        double xMove, double yMove, double zMove, 
+        bool isUpdate_lastCoord3D);
+    void _modify_scalarField_order(QMeshPatch* m_tetModel);
+    void outputCH();
 
 protected:
     void dragEnterEvent(QDragEnterEvent *event);
@@ -105,34 +91,23 @@ private slots:
     void on_pushButton_clearAll_clicked();
     void on_treeView_clicked(const QModelIndex &index);
 
-	/*This is RoboSYS*/
-    void import_CAD_RoboSYS();
-
     /*This is for Display*/
-    void change_LayerDisplay();
-    void viewAll_Layers();
-    void showRayOrSurface();
-    void show_ISO_Layer();
-    void showTightSupportSurface();
-    void deSelect_origin();
-
-    /*This is for Initial guess of support Envelope*/
-    void compute_initial_Guess_SupportEnvelope();
-    /*This is for Initial layers input*/
-    void readSliceData();
-    /*This is for support ray generation*/
-    void build_SupportRAY();
-    /*This is for support layer generation*/
-    void build_SupportMesh();
-    /*This is for toolpath generation*/
-    void get_CurvedToolpath();
-    /*This is for toolpath output*/
-    void output_Toolpath();
-
-    // function test
-    void test_func();
-    // supportFree MainFunction
-    //void build_SupportFree_Toolpath();
+    void update_Layer_Display();
+    void all_Display();
+    void change_maxLayerNum_normalORcompatible();
+    //This if for Tree support generation
+    void readData_tetModel_and_scalarField();
+    void update_model_postion_orientation();
+    void build_EnvelopeCH();
+    void remeshCH();
+    void generate_supportSpace();
+    void readData_supportSpace();
+    void transferField_2_supportSpace();
+    void generate_compatible_layers();
+    void generate_support_structure();
+    void extract_slim_supportLayer();
+    void toolPath_Generation();
+    void UR_robot_waypoint_Generation();
 };
 
 #endif // MAINWINDOW_H

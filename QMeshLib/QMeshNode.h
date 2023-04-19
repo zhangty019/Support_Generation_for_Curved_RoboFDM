@@ -32,8 +32,6 @@ public:
 	void GetCoord3D( double &x, double &y, double &z );
 	void SetCoord3D( double x, double y, double z );
 
-	void GetCoord3D(double pp[3]);
-
     void GetCoord3D_last( double &x, double &y, double &z );
 	void SetCoord3D_last( double x, double y, double z );
 
@@ -103,12 +101,6 @@ public:
 
     void *attachedPointer, *attachedPointer1;
 
-	// used for forcing node normal down forward when detecting support ray
-	double m_desiredNormal[3];
-	// store the polyline node for support generation
-	std::vector<Eigen::Vector3d> polyline_node;
-	std::vector<int> polyline_node_weight;
-
     int m_nIdentifiedPatchIndex = -1;
 	bool selected = false;
 	bool selectedforEdgeSelection;
@@ -125,52 +117,21 @@ public:
     double value1;
     double value2;
 
-
 	double Alpha = 0; //For TopOpt Filter Variable
-
 
     double U,V,W;
 
     void GetCoord3D_FLP( double &x, double &y, double &z );
     void SetCoord3D_FLP( double x, double y, double z );
 
-    void GetCoord3D_Laplacian( double &x, double &y, double &z ) {
-		x=coord3D_Laplacian[0]; y=coord3D_Laplacian[1]; z=coord3D_Laplacian[2];};
-    void SetCoord3D_Laplacian( double x, double y, double z ) {
-		coord3D_Laplacian[0]=x; coord3D_Laplacian[1]=y; coord3D_Laplacian[2]=z;};
+    void GetCoord3D_Laplacian( double &x, double &y, double &z ) {x=coord3D_Laplacian[0]; y=coord3D_Laplacian[1]; z=coord3D_Laplacian[2];};
+    void SetCoord3D_Laplacian( double x, double y, double z ) {coord3D_Laplacian[0]=x; coord3D_Laplacian[1]=y; coord3D_Laplacian[2]=z;};
 
     void SetMixedArea(double area) {m_mixedArea=area;};
 
     int TempIndex; // for remeshing
     int identifiedIndex;
 	bool inner, i_inner;
-
-	bool tworingBoundary = false;
-	bool voxelFlags[6] = { false };
-	//flag 0 -- True for x left boundary face
-	//flag 1 -- True for x right boundary face
-	//flag 2 -- True for y left boundary face
-	//flag 3 -- True for y right boundary face
-	//flag 4 -- True for z left boundary face
-	//flag 5 -- True for z right boundary face
-	bool isPlatformNode = false;
-	int voxelLayerIndex = -1;
-	bool isVoxelDraw = true;
-	bool isBoundaryVoxelNode = false;
-	double guideFieldValue = 0;
-	int VolumetoSurfaceIndex = -1; // For tetMesh to Surface mesh when voxelization
-
-	//record the implicit value of each field
-	double implicitSurface_value = -INFINITY; // field value for cuting support layers with impelicity surface
-	double implicitSurface_value_outer_Boundary = -INFINITY;
-	//double implicitSurface_value_inner_Boundary = -INFINITY;
-	double implicitSurface_value_gridPlane_Boundary = -INFINITY;
-
-	double implicitSurface_cut_index = -1; // node index reorder for cutted support surface reconstruction
-	QMeshEdge* cutNode_related_LayerEdge = NULL; // cutNode installed on which edge
-
-	bool isHighlight = false;
-
 
 private:
 	int indexno;
@@ -209,41 +170,81 @@ private:
 
     float m_rgb[3];
 
-	
+	/* Added by ZTY 2023-02-18 */
+	// variables for curved CCF printing
 public:
-	// toolpath generation
-	double boundaryValue; //for tool-path generation,boundary distance field
-	QMeshEdge* relatedLayerEdge = NULL; //for tool-path generation, iso-Node on which layer edge
-	bool connectTPathProcessed; //for tool-path connection, indicate has been linked
-	double isoValue = -1.0;//for tool-path connection, indicate isoNode's isoValue
-	bool resampleChecked = false; //for tool-path connection, indicate whether the Node will be selected after resampling
-	double dualArea(); //This is for heat method for distance computing
-	double geoFieldValue; //for tool-path generation, compute from heat method
-	int heatmethodIndex; //for tool-path generation, heat method computing
-	double boundaryValue_temp; // for queue Dijk calculation
-	// variables for NanoPrinting
 	void GetNormal_last(double& nx, double& ny, double& nz);
 	void SetNormal_last(double nx, double ny, double nz);
-	// variables for support generation
-	bool need_Support = false; //indicate that Node on init Layer needs support
-	Eigen::Vector3d supportRay_Dir;
-	Eigen::Vector3d supportEndPos;
-	bool isOringin = false; // indicate the start node of ray
-	bool isUseful_Node_SupportRay = true; // indicate the Node needs to be collected
-	bool deselect_origin_of_RAY = false; // for de-select origin when clear support ray
-	int intersect_NUM = 0; // for record the intersect num sphere with support ray
-	bool isHostNode = false; // for tet tree support generation (source node)
+	double dualArea();
+	double scalarField = 0.0;
+	double scalarField_init = 0.0;
+	int Volume2Surface_Ind = 0;
+	bool is_tetSupportNode = false;
+	int hollow_supportTet_Ind = 0;
+	bool model_boundary = false;
+	int supportIndex = -1;
+	bool isBottomNode = false;
+	bool need_Support = false;	
+	Eigen::Vector3d supportRay_Dir_onSourceNode = { 0.0,0.0,0.0 };
+	std::vector<Eigen::Vector3d> polyline_node;// store the polyline node
+	bool isOringin = false;
+	QMeshNode* attached_modelNode = NULL;
 
-	// Code reconstruction for Support-Tree-Generation
+	QMeshEdge* relatedTetEdge = NULL;// for record the node of iso-layers on which tet edge;
+
 	bool is_Host = false;
 	bool is_Processed = false;
 	bool is_virtual_Host = false;
 	QMeshFace* treeNode_belonging_Face = NULL;
-	Eigen::Vector3d descend_To_TreeNode_Dir = { 0.0,0.0,-1.0 };		//-->treeNode
-	Eigen::Vector3d descend_From_TreeNode_Dir = { 0.0,0.0,-1.0 };	//treeNode-->
+	Eigen::Vector3d descend_To_TreeNode_Dir = { 0.0,-1.0,0.0 };		//-->treeNode
+	Eigen::Vector3d descend_From_TreeNode_Dir = { 0.0,-1.0,0.0 };	//treeNode-->
 	int treeNode_before_branch_NUM = 0;
 
+	// field value for cuting support layers with impelicity surface
+	double implicitSurface_value = -INFINITY;
+	// node index reorder for cutted support surface reconstruction
+	double implicitSurface_cut_index = -1;
+	// cutNode installed on which edge
+	QMeshEdge* cutNode_related_LayerEdge = NULL;
 
+	double nodePlaneDis; // parameter used in plane cutting
+	bool planeCutNewNode = false;
+	int splitIndex;		 //detect which splited patch this node belongs to
+	int splitPatchIndex; //the index number of this node in splited patch
+
+	double boundaryValue; //for tool-path generation
+	double geoFieldValue; //for tool-path generation, used by heat method
+	int heatmethodIndex;  //for tool-path generation, heat method computing
+	QMeshEdge* relatedLayerEdge = NULL; //for tool-path generation, iso-Node on which layer edge
+	bool connectTPathProcessed; //for tool-path connection, indicate has been linked
+	double isoValue = -1.0;//for tool-path connection, indicate isoNode's isoValue
+	bool resampleChecked = false; //for tool-path connection, indicate whether the Node will be selected after resampling
+
+	double zigzagValue;   //for tool-path generation: zigzag distance field
+
+	Eigen::Vector3d deformed_coord3D = Eigen::Vector3d::Zero();
+
+	int grid_blk_ind_i = -1;
+	int grid_blk_ind_j = -1;
+	bool is_treeNode_processed = false;
+	double treeNode_weight = 1.0;
+	bool is_special_SinglePt = false;
+
+	int overhang_region_idx = -1;
+
+	//wp_generation
+	Eigen::Vector3d m_printPos = Eigen::Vector3d::Zero();
+	Eigen::Vector3d m_printNor = Eigen::Vector3d::Zero();
+	bool Jump_nextSecStart = false;	bool Jump_preSecEnd = false;
+	Eigen::Vector3d m_DHW = Eigen::Vector3d::Ones();
+	Eigen::MatrixXd m_XYZBC = Eigen::MatrixXd::Zero(1, 5);
+	double m_E = 0.0;
+
+	int  Jump_SecIndex; // NodeIndex in JumpPatch
+	bool isSingularNode = false;// Singular node
+	bool isSingularSecStartNode = false;
+	bool isSingularSecEndNode = false;
+	int solveSeclct = 0; // for solve choose // 1 -> solve 1 // 2 -> solve 2	
 
 private:
 	double m_normal_last[3];

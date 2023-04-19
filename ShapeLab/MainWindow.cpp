@@ -26,8 +26,12 @@
 #include "../QMeshLib/QMeshEdge.h"
 #include "../QMeshLib/QMeshNode.h"
 
-#include "alphanum.hpp"
-#include <dirent.h>
+#include "fileIO.h"
+#include <cstdlib>
+#include "meshOperation.h"
+#include "IsoLayerGeneration.h"
+#include "toolpathGeneration.h"
+#include "robotWpGeneration.h"
 
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -129,30 +133,29 @@ void MainWindow::createActions()
     connect (signalMapper, SIGNAL(mapped(int)), this, SLOT(signalNavigation(int)));
 
 	//Button
-    connect(ui->pushButton_readRobot_model, SIGNAL(released()), this, SLOT(import_CAD_RoboSYS()));
+	connect(ui->pushButton_ShowAllLayers, SIGNAL(released()), this, SLOT(all_Display()));
+	connect(ui->spinBox_ShowLayerIndex, SIGNAL(valueChanged(int)), this, SLOT(update_Layer_Display()));
+    connect(ui->radioButton_compatibleLayer, SIGNAL(released()), this, SLOT(change_maxLayerNum_normalORcompatible()));
 
+    //Buttons: Tianyu Zhang 2023-04-17 for support-generation of curved slicing
+    connect(ui->pushButton_readData, SIGNAL(released()), this, SLOT(readData_tetModel_and_scalarField()));
+    connect(ui->pushButton_model_positionUpdate, SIGNAL(released()), this, SLOT(update_model_postion_orientation()));
+    connect(ui->pushButton_buildEnvelopeCH, SIGNAL(released()), this, SLOT(build_EnvelopeCH()));
+    connect(ui->pushButton_remeshCH, SIGNAL(released()), this, SLOT(remeshCH()));
+    connect(ui->pushButton_generateSupportSpace, SIGNAL(released()), this, SLOT(generate_supportSpace()));
+    connect(ui->pushButton_readSupportSpace, SIGNAL(released()), this, SLOT(readData_supportSpace()));
+    connect(ui->pushButton_transferField_2_SupportSpace, SIGNAL(released()), this, SLOT(transferField_2_supportSpace()));
+    connect(ui->pushButton_generateCompatibleLayers, SIGNAL(released()), this, SLOT(generate_compatible_layers()));
+    connect(ui->pushButton_generate_support_structure, SIGNAL(released()), this, SLOT(generate_support_structure()));
+    connect(ui->pushButton_slimmedSupportGeneration, SIGNAL(released()), this, SLOT(extract_slim_supportLayer()));
+    connect(ui->pushButton_toolPathGeneration, SIGNAL(released()), this, SLOT(toolPath_Generation()));
+    connect(ui->pushButton_Tp4Ur5e, SIGNAL(released()), this, SLOT(UR_robot_waypoint_Generation()));
 
-    connect(ui->pushButton_readGcodeSourceData, SIGNAL(released()), this, SLOT(readSliceData()));
-    connect(ui->pushButton_Comp_initialGuess_envelopSupport, SIGNAL(released()), this, SLOT(compute_initial_Guess_SupportEnvelope()));
-    
-    connect(ui->pushButton_buildSupportRaySet, SIGNAL(released()), this, SLOT(build_SupportRAY()));
-    connect(ui->pushButton_buildSupportLayerSet, SIGNAL(released()), this, SLOT(build_SupportMesh()));
-    connect(ui->pushButton_buildSupportToolpathSet, SIGNAL(released()), this, SLOT(get_CurvedToolpath()));
-    connect(ui->pushButton_output_Toolpath, SIGNAL(released()), this, SLOT(output_Toolpath()));
-
-	connect(ui->pushButton_ShowAllLayers, SIGNAL(released()), this, SLOT(viewAll_Layers()));
-	connect(ui->spinBox_ShowLayerIndex, SIGNAL(valueChanged(int)), this, SLOT(change_LayerDisplay()));
-    connect(ui->radioButton_showRayOrSurface, SIGNAL(released()), this, SLOT(showRayOrSurface()));
-    connect(ui->checkBox_draw_LargeISOlayers, SIGNAL(released()), this, SLOT(show_ISO_Layer()));
-    connect(ui->radioButton_tightSupportLayerDraw, SIGNAL(released()), this, SLOT(showTightSupportSurface()));
-    connect(ui->radioButton_deselect_origin, SIGNAL(released()), this, SLOT(deSelect_origin()));
-
-    connect(ui->pushButton_TestFunc, SIGNAL(released()), this, SLOT(test_func()));
 }
 
 void MainWindow::open()
 {
-    QString filenameStr = QFileDialog::getOpenFileName(this, tr("Open File,"), "..//DataSet//TET//", tr(""));
+    QString filenameStr = QFileDialog::getOpenFileName(this, tr("Open File,"), "../DataSet/TET_MODEL/", tr(""));
     QFileInfo fileInfo(filenameStr);
     QString fileSuffix = fileInfo.suffix();
     QByteArray filenameArray = filenameStr.toLatin1();
@@ -167,7 +170,7 @@ void MainWindow::open()
     modelName = modelName.substr(foundStart+1);
     
     if (QString::compare(fileSuffix,"obj") == 0){
-        PolygenMesh *polygenMesh = new PolygenMesh(UNDEFINED);
+        PolygenMesh *polygenMesh = new PolygenMesh(SURFACE_MESH);
         polygenMesh->ImportOBJFile(filename,modelName);
         polygenMesh->BuildGLList(polygenMesh->m_bVertexNormalShading);
         pGLK->AddDisplayObj(polygenMesh,true);
@@ -175,13 +178,14 @@ void MainWindow::open()
     }
 
 	else if (QString::compare(fileSuffix, "tet") == 0) {
-		PolygenMesh *polygenMesh = new PolygenMesh(TET);
-		std::cout << "Input tetrahedral mesh from: " << filename << std::endl;
-		std::cout << "The model name is '" << modelName << "'" << std::endl;
+		PolygenMesh *polygenMesh = new PolygenMesh(TET_MODEL);
+		std::cout << filename << std::endl;
+		std::cout << modelName << std::endl;
 		polygenMesh->ImportTETFile(filename, modelName);
 		polygenMesh->BuildGLList(polygenMesh->m_bVertexNormalShading);
 		pGLK->AddDisplayObj(polygenMesh, true);
 		polygenMeshList.AddTail(polygenMesh);
+        this->_update_Position_Orientation_Parameter();
 	}
 
     updateTree();
@@ -192,6 +196,7 @@ void MainWindow::open()
 
 void MainWindow::save()
 {
+    return;
 	PolygenMesh *polygenMesh = getSelectedPolygenMesh();
 	if (!polygenMesh)
 		polygenMesh = (PolygenMesh*)polygenMeshList.GetHead();
@@ -243,7 +248,7 @@ void MainWindow::saveSelection()
 	char* p = strtok(cstr, split);
 
 	char output_filename[256];
-	strcpy(output_filename, "..\\selection_file\\");
+	strcpy(output_filename, "../DataSet/temp/holeSelection/");
 	strcat(output_filename, cstr);
 	char filetype[64];
 	strcpy(filetype, ".txt");
@@ -252,7 +257,7 @@ void MainWindow::saveSelection()
 	ofstream nodeSelection(output_filename);
 	if (!nodeSelection)
 		cerr << "Sorry!We were unable to build the file NodeSelect!\n";
-	for (GLKPOSITION Pos = patch->GetNodeList().GetHeadPosition(); Pos;) {
+	for (GLKPOSITION Pos = patch->GetNodeList().GetHeadPosition(); Pos;) { // node set
 		QMeshNode *CheckNode = (QMeshNode*)patch->GetNodeList().GetNext(Pos);
 		nodeSelection << CheckNode->GetIndexNo() << ":";
 		//for the selection of fixing part
@@ -284,7 +289,7 @@ void MainWindow::readSelection()
 	char* p = strtok(cstr, split);
 
 	char input_filename[256];
-	strcpy(input_filename, "..\\selection_file\\");
+	strcpy(input_filename, "../DataSet/temp/holeSelection/");
 	strcat(input_filename, cstr);
 	char filetype[64];
 	strcpy(filetype, ".txt");
@@ -326,6 +331,8 @@ void MainWindow::readSelection()
 		else Face->isFixedDraw = false;
 	}
 	printf("Finish input selection \n");
+    printf("--> consider the hole winding \n");
+    printf("--> If crashed, please confirm the selected file is updated.\n");
 	pGLK->refresh(true);
 
 }
@@ -440,7 +447,7 @@ void MainWindow::dropEvent(QDropEvent *event)
 	}
 	else if (QString::compare(fileSuffix, "tet") == 0) {
 		polygenMesh->ImportTETFile(filename, modelName);
-        polygenMesh->meshType = TET;
+        polygenMesh->meshType = TET_MODEL;
 	}
 	polygenMesh->m_bVertexNormalShading = false;	
     polygenMesh->BuildGLList(polygenMesh->m_bVertexNormalShading);
@@ -489,6 +496,19 @@ PolygenMesh *MainWindow::getSelectedPolygenMesh()
     return nullptr;
 }
 
+void MainWindow::on_pushButton_clearAll_clicked(){
+
+    for (GLKPOSITION pos = polygenMeshList.GetHeadPosition(); pos != nullptr;) {
+        PolygenMesh* polygenMesh = (PolygenMesh*)polygenMeshList.GetNext(pos);
+        pGLK->DelDisplayObj(polygenMesh);
+    }
+    polygenMeshList.RemoveAll();
+    pGLK->ClearDisplayObjList();
+
+    pGLK->refresh();
+    updateTree();
+}
+
 void MainWindow::on_treeView_clicked(const QModelIndex &index)
 {
     ui->treeView->currentIndex();
@@ -502,990 +522,743 @@ void MainWindow::on_treeView_clicked(const QModelIndex &index)
     pGLK->refresh(true);
 }
 
-void MainWindow::import_CAD_RoboSYS() {
-
-    std::vector<std::string> robotPartsName;
-    std::string cad_Dir_Robot = "../DataSet/CAD/Robot";
-    _get_FileName(cad_Dir_Robot, robotPartsName, true, false);
-
-    std::vector<std::string> positionerPartsName;
-    std::string cad_Dir_Postioner = "../DataSet/CAD/Positioner";
-    _get_FileName(cad_Dir_Postioner, positionerPartsName, true, false);
-
-    //for (int i = 0; i < robotPartsName.size(); i++) {
-    //    std::cout << robotPartsName[i] << std::endl;
-    //}
-    //for (int i = 0; i < positionerPartsName.size(); i++) {
-    //    std::cout << positionerPartsName[i] << std::endl;
-    //}
-
-    //read CAD files and build mesh_patches
-    char filename[1024];
-    // isBuilt
-    if (_detectPolygenMesh(CAD_PARTS, "Robot", false) != NULL) return;
-    PolygenMesh* robotModelSet = _buildPolygenMesh(CAD_PARTS, "Robot");
-    // robot
-    for (int i = 0; i < robotPartsName.size(); i++) {
-
-        std::sprintf(filename, "%s%s%s", cad_Dir_Robot.c_str(), "/", robotPartsName[i].c_str());
-        cout << filename << endl;
-
-        QMeshPatch* cadPatch = new QMeshPatch;
-        cadPatch->SetIndexNo(robotModelSet->GetMeshList().GetCount()); //index begin from 0
-        robotModelSet->GetMeshList().AddTail(cadPatch);
-        cadPatch->inputOBJFile(filename);
-        cadPatch->patchName = robotPartsName[i].data();
-
-    }
-
-    // isBuilt
-    if (_detectPolygenMesh(CAD_PARTS, "Positioner", false) != NULL) return;
-    PolygenMesh* positionerModelSet = _buildPolygenMesh(CAD_PARTS, "Positioner");
-    // positioner
-    for (int i = 0; i < positionerPartsName.size(); i++) {
-
-        std::sprintf(filename, "%s%s%s", cad_Dir_Postioner.c_str(), "/", positionerPartsName[i].c_str());
-        cout << filename << endl;
-
-        QMeshPatch* cadPatch = new QMeshPatch;
-        cadPatch->SetIndexNo(positionerModelSet->GetMeshList().GetCount()); //index begin from 0
-        positionerModelSet->GetMeshList().AddTail(cadPatch);
-        cadPatch->inputOBJFile(filename);
-        cadPatch->patchName = positionerPartsName[i].data();
-
-    }
-
-    // isBuilt
-    if (_detectPolygenMesh(CAD_PARTS, "Floor", false) != NULL) return;
-    PolygenMesh* floorSet = _buildPolygenMesh(CAD_PARTS, "Floor");
-    // floor
-    std::sprintf(filename, "%s", "../DataSet/CAD/floor.obj");
-    cout << filename << endl;
-    QMeshPatch* cadPatch = new QMeshPatch;
-    cadPatch->SetIndexNo(floorSet->GetMeshList().GetCount()); //index begin from 0
-    floorSet->GetMeshList().AddTail(cadPatch);
-    cadPatch->inputOBJFile(filename);
-    cadPatch->patchName = "floor";
-
-    /**** Postion transformation ****/
-    Eigen::Vector3d tr(1459.306, -26.9, 2.591); // X - Y - Z 
-    cout << endl << "********** EulerAngle **********" << endl;
-    //initial (RPY, x-roll, then y-pitch, next z-yaw)
-    Eigen::Vector3d ea(89.87, -0.1, 0.073); // Z - Y - X
-    for (int i = 0; i < 3; i++) {
-        ea[i] = DEGREE_TO_ROTATE(ea[i]);
-    }
-
-    //Euler Angel -> rotation matrix
-    Eigen::Matrix3d rotation_matrix3;
-    rotation_matrix3 = Eigen::AngleAxisd(ea[0], Eigen::Vector3d::UnitZ()) *
-        Eigen::AngleAxisd(ea[1], Eigen::Vector3d::UnitY()) *
-        Eigen::AngleAxisd(ea[2], Eigen::Vector3d::UnitX());
-    cout << "rotation matrix3 =\n" << rotation_matrix3 << endl;
-
-    //move positioner
-    for (GLKPOSITION Postioner_Pos = positionerModelSet->GetMeshList().GetHeadPosition(); Postioner_Pos;) {
-        QMeshPatch* Postioner_Patch = (QMeshPatch*)positionerModelSet->GetMeshList().GetNext(Postioner_Pos);
-        for (GLKPOSITION Pos = Postioner_Patch->GetNodeList().GetHeadPosition(); Pos;) {
-            QMeshNode* node = (QMeshNode*)Postioner_Patch->GetNodeList().GetNext(Pos);
-
-            Eigen::Vector3d pp;
-            node->GetCoord3D(pp[0], pp[1], pp[2]);
-            pp = rotation_matrix3 * pp + tr;
-            node->SetCoord3D(pp[0], pp[1], pp[2]);
-        }
-    }
-
-
-    pGLK->refresh(true);
-    pGLK->Zoom_All_in_View();
-    std::cout << "-------------------------------------------- CNC Load Finish!" << std::endl;
-
-}
-//// only get file name in dirctory and push_back into fileNameCell
-//void MainWindow::_get_FileName(string dirctory, vector<string>& fileNameCell) {
-//
-//    if (fileNameCell.empty() == false) return;
-//
-//    DIR* dp;
-//    struct dirent* ep;
-//    string fullDir = dirctory;
-//    //cout << fullDir << endl;
-//    dp = opendir(fullDir.c_str());
-//
-//    if (dp != NULL) {
-//        while (ep = readdir(dp)) {
-//            //cout << ep->d_name << endl;
-//            if ((string(ep->d_name) != ".") && (string(ep->d_name) != "..")) {
-//                //cout << ep->d_name << endl;
-//                fileNameCell.push_back(string(ep->d_name));
-//            }
-//        }
-//        (void)closedir(dp);
-//    }
-//    else {
-//        perror("Couldn't open the directory");
-//    }
-//}
-
-// true - use polygen type define <-> false - use polygen name define
-PolygenMesh* MainWindow::_detectPolygenMesh(mesh_type type, std::string name, bool detectType) {
-
-    PolygenMesh* detectedMesh = NULL;
-    for (GLKPOSITION pos = polygenMeshList.GetHeadPosition(); pos != nullptr;) {
-        PolygenMesh* thispolygenMesh = (PolygenMesh*)polygenMeshList.GetNext(pos);
-        if (detectType == true) {
-            if (thispolygenMesh->meshType == type) {
-                detectedMesh = thispolygenMesh; break;
-            }
-        }
-        else {
-            if (thispolygenMesh->getModelName() == name) {
-                detectedMesh = thispolygenMesh; break;
-            }
-        }
-    }
-    return detectedMesh;
-
-}
-
 PolygenMesh* MainWindow::_buildPolygenMesh(mesh_type type, std::string name) {
 
     PolygenMesh* newMesh = new PolygenMesh(type);
     newMesh->setModelName(name);
-    polygenMeshList.AddTail(newMesh);
-    pGLK->AddDisplayObj(newMesh, true);
     newMesh->BuildGLList(newMesh->m_bVertexNormalShading);
+    pGLK->AddDisplayObj(newMesh, true);
+    polygenMeshList.AddTail(newMesh);
     updateTree();
     return newMesh;
 
 }
 
-//compute initial Guess SupportEnvelope
-void MainWindow::compute_initial_Guess_SupportEnvelope() {
-    this->_read_platform();
-    this->_read_TET_vectorField();
-    std::printf("------------------------------------------- TET and Vfield Load Finish!\n");
+PolygenMesh* MainWindow::_detectPolygenMesh(mesh_type type) {
 
-    PolygenMesh* tetModel = _detectPolygenMesh(TET, "tet_fabrication", true);
-    PolygenMesh* platform = _detectPolygenMesh(CAD_PARTS, "Platform", false);
-    PolygenMesh* supportRaySet = _buildPolygenMesh(SUPPORT_RAY, "Support_Ray");
-
-    if (tetModel == NULL || platform == NULL || supportRaySet == NULL)
-        std::cout << "There is no needed PolygenMesh, please check" << std::endl;
-
-    supportGene = new supportGeneration();
-    supportGene->initial(tetModel, platform, supportRaySet, (ui->lineEdit_SorceDataDir->text()).toStdString());
-    supportGene->initial_Guess_SupportEnvelope();//get support node
-    supportGene->collect_Support_Polyline_fromTETsurface();// collect support node and edge
-    supportGene->computer_initialGuess_EnvelopeHull();// build convex hull for initial guess of support
-    supportGene->output_initial_Polyline();
-
-    pGLK->refresh(true);
-    pGLK->Zoom_All_in_View();
-}
-
-// read layers
-void MainWindow::readSliceData() {
-
-    char filename[1024];
-    //read platform firstly
-    this->_read_platform();
-    //read iso-Layers
-    std::vector<std::string> initLayer_Name;
-    std::string initLayer_Dir = "../DataSet/LAYERS/" + (ui->lineEdit_SorceDataDir->text()).toStdString();
-    _get_FileName(initLayer_Dir, initLayer_Name, false, false);
-
-    PolygenMesh* sliceSet = NULL;
-    sliceSet = _detectPolygenMesh(CURVED_LAYER, "Layers", false);
-
-    if (sliceSet == NULL) {
-
-        sliceSet = _buildPolygenMesh(CURVED_LAYER, "Layers");
-
-        //read slice files and build mesh_patches
-        for (int i = 0; i < initLayer_Name.size(); i++){
-
-            std::sprintf(filename, "%s%s%s", initLayer_Dir.c_str(), "/", initLayer_Name[i].data());
-            //cout << filename << endl;
-
-            QMeshPatch* slice = new QMeshPatch;
-            slice->SetIndexNo(sliceSet->GetMeshList().GetCount()); //index begin from 0
-            sliceSet->GetMeshList().AddTail(slice);
-            slice->patchName = initLayer_Name[i].data();
-            if (slice->patchName.find("S") != string::npos) {
-                slice->is_SupportLayer = true;
-                slice->largeLayer_Index = stoi(initLayer_Name[i].substr(0, initLayer_Name[i].size() - 5)) / 100; //100 S.obj
-            }
-            else {
-                slice->is_SupportLayer = false;
-                slice->largeLayer_Index = stoi(initLayer_Name[i].substr(0, initLayer_Name[i].size() - 4)) / 100; //5900 .obj
-            }
-            slice->inputOBJFile(filename);
-
-            _modifyCoord(slice);//modifyCoord upY->upZ (only node)
-
-            //pre-calculate the face normal for layers and save into "m_desiredNormal"
-            //control the m_desiredNormal to be downward
-            int count_Z_up_node = 0;
-            for (GLKPOSITION Pos = slice->GetFaceList().GetHeadPosition(); Pos != NULL;) {
-                QMeshFace* face = (QMeshFace*)(slice->GetFaceList().GetNext(Pos));
-                double n[3];
-                face->CalPlaneEquation();
-                face->GetNormal(n[0], n[1], n[2]);
-                if (n[2] >= 0.0)    count_Z_up_node++;
-            }
-            bool flip_slice_normal = false;
-            // if almost normal upward, we need to flip them
-            if ((double)count_Z_up_node / slice->GetFaceNumber() > 0.2) {flip_slice_normal = true;}
-
-            for (GLKPOSITION Pos = slice->GetFaceList().GetHeadPosition(); Pos != NULL;) {
-                QMeshFace* face = (QMeshFace*)(slice->GetFaceList().GetNext(Pos));
-                double n[3]; double A, B, C, D;
-                face->GetPlaneEquation(n[0], n[1], n[2], D);
-                if (flip_slice_normal) {
-                    for (int i = 0; i < 3; i++) { face->m_desiredNormal[i] = -n[i]; }
-                    face->m_desired_D = -D;
-                }
-                else {
-                    for (int i = 0; i < 3; i++) {face->m_desiredNormal[i] =  n[i];}
-                    face->m_desired_D = D;
-                }
-            }
-            //pre-calculate the node normal for layers
-            for (GLKPOSITION Pos = slice->GetNodeList().GetHeadPosition(); Pos != NULL;) {
-                QMeshNode* node = (QMeshNode*)(slice->GetNodeList().GetNext(Pos));
-
-                double n[3];
-                node->CalNormal(n);
-                if (flip_slice_normal) {
-                    for (int i = 0; i < 3; i++) {node->m_desiredNormal[i] = -n[i];}
-                }
-                else {
-                    for (int i = 0; i < 3; i++) {node->m_desiredNormal[i] =  n[i];}
-                }
-            }       
-        }
-    }
-
-    //give base movement 
-    if ((ui->lineEdit_SorceDataDir->text()).toStdString() == "bunny_cut" ||
-        (ui->lineEdit_SorceDataDir->text()).toStdString() == "CSquare_cut" ||
-        (ui->lineEdit_SorceDataDir->text()).toStdString() == "yoga_cut") {
-        ui->doubleSpinBox_Zmove->setValue(0.5);
-    }
-    if ((ui->lineEdit_SorceDataDir->text()).toStdString() == "topo_cut") {
-        ui->doubleSpinBox_Zmove->setValue(6.5);
-    }
-    if ((ui->lineEdit_SorceDataDir->text()).toStdString() == "arch_cut") {
-        ui->doubleSpinBox_Zmove->setValue(15.5);
-    }
-    if ((ui->lineEdit_SorceDataDir->text()).toStdString() == "dome_cut") {
-        ui->doubleSpinBox_Zmove->setValue(-4.5);
-    }
-    if ((ui->lineEdit_SorceDataDir->text()).toStdString() == "bridgeSmall_cut") {
-        ui->doubleSpinBox_Zmove->setValue(10.5);
-    }
-    if ((ui->lineEdit_SorceDataDir->text()).toStdString() == "helmetSmall_cut") {
-        ui->doubleSpinBox_Zmove->setValue(20.5);
-    }
-    if ((ui->lineEdit_SorceDataDir->text()).toStdString() == "airbus_topopt_cut") {
-        ui->doubleSpinBox_Zmove->setValue(5.5);
-    }
-
-
-    // Move iso-layers(Xmove, Ymove, Zmove);
-    for (GLKPOSITION patchPos = sliceSet->GetMeshList().GetHeadPosition(); patchPos;) {
-        QMeshPatch* slice_patch = (QMeshPatch*)sliceSet->GetMeshList().GetNext(patchPos);
-        for (GLKPOSITION Pos = slice_patch->GetNodeList().GetHeadPosition(); Pos;) {
-            QMeshNode* Node = (QMeshNode*)slice_patch->GetNodeList().GetNext(Pos);
-
-            double xx, yy, zz;
-            Node->GetCoord3D_last(xx, yy, zz);
-
-            xx += ui->doubleSpinBox_Xmove->value();
-            yy += ui->doubleSpinBox_Ymove->value();
-            zz += ui->doubleSpinBox_Zmove->value();
-
-            Node->SetCoord3D(xx, yy, zz);
-        }
-    }
-
-    //std::string tetName;
-    //if ((ui->lineEdit_SorceDataDir->text()).toStdString() == "bunny_cut"){
-    //    tetName = "bunnyhead";
-    //}
-    //if ((ui->lineEdit_SorceDataDir->text()).toStdString() == "yoga_cut") {
-    //    tetName = "YogaNew";
-    //}
-    //if ((ui->lineEdit_SorceDataDir->text()).toStdString() == "topo_cut") {
-    //    tetName = "topopt_new";
-    //}
-    //
-    ////read tet Model and its Vector Field
-    //PolygenMesh* tet_polygenMesh = new PolygenMesh(TET);
-    //std::cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
-    //std::sprintf(filename, "%s%s%s", "../DataSet/", tetName.c_str(),"_fabrication.tet");
-    //std::cout << "Input tetrahedral mesh from: \n -->" << filename << std::endl;
-    //std::string modelName = tetName + "_fabrication";
-    //std::cout << "The model name is: " << modelName << std::endl;
-    //tet_polygenMesh->ImportTETFile(filename, modelName);
-    //tet_polygenMesh->BuildGLList(tet_polygenMesh->m_bVertexNormalShading);
-    //pGLK->AddDisplayObj(tet_polygenMesh, true);
-    //polygenMeshList.AddTail(tet_polygenMesh);
-    //updateTree();
-    //QMeshPatch* tet_Model = (QMeshPatch*)tet_polygenMesh->GetMeshList().GetHead();
-    //_modifyCoord(tet_Model);
-    //
-    //// read the vector field 
-    //Eigen::MatrixXd vectorField_set = Eigen::MatrixXd::Zero(tet_Model->GetTetraNumber(),3);
-    //std::sprintf(filename, "%s%s%s", "../DataSet/", tetName.c_str(),"_vector_field.txt");
-    //FILE* fp;   char linebuf[256];  int i_temp = 0; float nx, ny, nz;
-    //fp = fopen(filename, "r");
-    //if (!fp) {
-    //    printf("===============================================\n");
-    //    printf("Can not open the data file - vector Field File Import!\n");
-    //    printf("===============================================\n");
-    //}
-    //while (1) { // right read CODE !!!
-    //    fgets(linebuf, 255, fp);
-    //    if (feof(fp)) break;
-    //    sscanf(linebuf, "%f %f %f\n",&nx, &ny, &nz);
-    //    vectorField_set.row(i_temp) << nx, -nz, ny;// coordinate trans upY to upZ
-    //    //std::cout << i_temp << std::endl;
-    //    i_temp++;
-    //}
-    //fclose(fp);
-    //
-    ////give the vector field to TET element
-    //i_temp = 0;
-    //for (GLKPOSITION posTet = tet_Model->GetTetraList().GetHeadPosition(); posTet != nullptr;) {
-    //    QMeshTetra* tet = (QMeshTetra*)tet_Model->GetTetraList().GetNext(posTet);
-    //
-    //    tet->vectorField = vectorField_set.row(i_temp);
-    //    if ((ui->lineEdit_SorceDataDir->text()).toStdString() == "bunny_cut"||
-    //        (ui->lineEdit_SorceDataDir->text()).toStdString() == "topo_cut" ) {
-    //        tet->vectorField = -tet->vectorField;
-    //    }
-    //    i_temp++;
-    //    //std::cout << tet->vectorField.transpose() << std::endl;
-    //}
-    //std::cout << "finish input vectorField [ " << vectorField_set.rows() << " x " << vectorField_set.cols() << " ]" << std::endl;
-    //
-    //// Move tet model(Xmove, Ymove, Zmove)
-    //for (GLKPOSITION patchPos = tet_polygenMesh->GetMeshList().GetHeadPosition(); patchPos;) {
-    //    QMeshPatch* tet_patch = (QMeshPatch*)tet_polygenMesh->GetMeshList().GetNext(patchPos);
-    //    for (GLKPOSITION Pos = tet_patch->GetNodeList().GetHeadPosition(); Pos;) {
-    //        QMeshNode* Node = (QMeshNode*)tet_patch->GetNodeList().GetNext(Pos);
-    //
-    //        double xx, yy, zz;
-    //        Node->GetCoord3D_last(xx, yy, zz);
-    //
-    //        xx += ui->doubleSpinBox_Xmove->value();
-    //        yy += ui->doubleSpinBox_Ymove->value();
-    //        zz += ui->doubleSpinBox_Zmove->value();
-    //
-    //        Node->SetCoord3D(xx, yy, zz);
-    //    }
-    //}
-
-    this->_read_TET_vectorField();
-
-    ui->spinBox_ShowLayerIndex->setMaximum(sliceSet->GetMeshList().GetCount() - 1);
-    ui->pushButton_buildSupportRaySet->setEnabled(true);
-    viewAll_Layers();
-
-    std::cout << "------------------------------------------- Slices Load Finish!" << std::endl;
-}
-
-// read platform
-void MainWindow::_read_platform() {
-
-    char filename[1024];
-
-    if (_detectPolygenMesh(CAD_PARTS, "Platform", false) == NULL) {
-
-        PolygenMesh* Platform = _buildPolygenMesh(CAD_PARTS, "Platform");
-        std::sprintf(filename, "%s", "../DataSet/platform.obj");
-        //cout << filename << endl;
-        QMeshPatch* cadPatch = new QMeshPatch;
-        cadPatch->SetIndexNo(Platform->GetMeshList().GetCount()); //index begin from 0
-        Platform->GetMeshList().AddTail(cadPatch);
-        cadPatch->inputOBJFile(filename);
-        cadPatch->patchName = "platform";
-
-        //enlarge platform
-        double ratio = 1.4; double xx, yy, zz;
-        for (GLKPOSITION Pos = cadPatch->GetNodeList().GetHeadPosition(); Pos;) {
-            QMeshNode* Node = (QMeshNode*)cadPatch->GetNodeList().GetNext(Pos);
-
-            Node->GetCoord3D(xx, yy, zz);
-            xx *= ratio; yy *= ratio;
-            Node->SetCoord3D(xx, yy, zz);
-        }
-    }
-}
-
-// read TET model and its vector field
-void MainWindow::_read_TET_vectorField() {
-
-    char filename[1024];
-
-    std::string tetName;
-    if ((ui->lineEdit_SorceDataDir->text()).toStdString() == "bunny_cut") {
-        tetName = "bunnyhead";
-    }
-    if ((ui->lineEdit_SorceDataDir->text()).toStdString() == "yoga_cut") {
-        tetName = "YogaNew";
-    }
-    if ((ui->lineEdit_SorceDataDir->text()).toStdString() == "topo_cut") {
-        tetName = "topopt_new";
-    }
-    if ((ui->lineEdit_SorceDataDir->text()).toStdString() == "dome_cut") {
-        tetName = "dome";
-    }
-    if ((ui->lineEdit_SorceDataDir->text()).toStdString() == "arch_cut") {
-        tetName = "arch";
-    }
-    if ((ui->lineEdit_SorceDataDir->text()).toStdString() == "CSquare_cut") {
-        tetName = "CSquare";
-    }
-    if ((ui->lineEdit_SorceDataDir->text()).toStdString() == "bridgeSmall_cut") {
-        tetName = "bridgeSmall";
-    }
-    if ((ui->lineEdit_SorceDataDir->text()).toStdString() == "helmetSmall_cut") {
-        tetName = "helmetSmall";
-    }
-    if ((ui->lineEdit_SorceDataDir->text()).toStdString() == "airbus_topopt_cut") {
-        tetName = "airbus_topopt";
-    }
-
-
-    //read tet Model
-    PolygenMesh* tet_polygenMesh = new PolygenMesh(TET);
-    std::cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
-    std::sprintf(filename, "%s%s%s", "../DataSet/", tetName.c_str(), "_fabrication.tet");
-    std::cout << "Input tetrahedral mesh from: \n -->" << filename << std::endl;
-    std::string modelName = tetName + "_fabrication";
-    std::cout << "The model name is: " << modelName << std::endl;
-    tet_polygenMesh->ImportTETFile(filename, modelName);
-    tet_polygenMesh->BuildGLList(tet_polygenMesh->m_bVertexNormalShading);
-    pGLK->AddDisplayObj(tet_polygenMesh, true);
-    polygenMeshList.AddTail(tet_polygenMesh);
-    updateTree();
-    QMeshPatch* tet_Model = (QMeshPatch*)tet_polygenMesh->GetMeshList().GetHead();
-    _modifyCoord(tet_Model);
-
-    // read the vector field 
-    Eigen::MatrixXd vectorField_set = Eigen::MatrixXd::Zero(tet_Model->GetTetraNumber(), 3);
-    std::sprintf(filename, "%s%s%s", "../DataSet/", tetName.c_str(), "_vector_field.txt");
-    FILE* fp;   char linebuf[256];  int i_temp = 0; float nx, ny, nz;
-    fp = fopen(filename, "r");
-    if (!fp) {
-        printf("===============================================\n");
-        printf("Can not open the data file - vector Field File Import!\n");
-        printf("===============================================\n");
-    }
-    while (1) { // right read CODE !!!
-        fgets(linebuf, 255, fp);
-        if (feof(fp)) break;
-        sscanf(linebuf, "%f %f %f\n", &nx, &ny, &nz);
-        vectorField_set.row(i_temp) << nx, -nz, ny;// coordinate trans upY to upZ
-        //std::cout << i_temp << std::endl;
-        i_temp++;
-    }
-    fclose(fp);
-
-    //give the vector field to TET element
-    i_temp = 0;
-    for (GLKPOSITION posTet = tet_Model->GetTetraList().GetHeadPosition(); posTet != nullptr;) {
-        QMeshTetra* tet = (QMeshTetra*)tet_Model->GetTetraList().GetNext(posTet);
-
-        tet->vectorField = vectorField_set.row(i_temp);
-        if ((ui->lineEdit_SorceDataDir->text()).toStdString() == "bunny_cut" ||
-            (ui->lineEdit_SorceDataDir->text()).toStdString() == "bridgeSmall_cut" ||
-            (ui->lineEdit_SorceDataDir->text()).toStdString() == "topo_cut") {
-            tet->vectorField = -tet->vectorField;
-        }
-        i_temp++;
-        //std::cout << tet->vectorField.transpose() << std::endl;
-    }
-
-    std::cout << "finish input vectorField [ " << vectorField_set.rows() << " x " << vectorField_set.cols() << " ]" << std::endl;
-
-    // Move tet model(Xmove, Ymove, Zmove)
-    for (GLKPOSITION patchPos = tet_polygenMesh->GetMeshList().GetHeadPosition(); patchPos;) {
-        QMeshPatch* tet_patch = (QMeshPatch*)tet_polygenMesh->GetMeshList().GetNext(patchPos);
-        for (GLKPOSITION Pos = tet_patch->GetNodeList().GetHeadPosition(); Pos;) {
-            QMeshNode* Node = (QMeshNode*)tet_patch->GetNodeList().GetNext(Pos);
-
-            double xx, yy, zz;
-            Node->GetCoord3D_last(xx, yy, zz);
-
-            xx += ui->doubleSpinBox_Xmove->value();
-            yy += ui->doubleSpinBox_Ymove->value();
-            zz += ui->doubleSpinBox_Zmove->value();
-
-            Node->SetCoord3D(xx, yy, zz);
-        }
-    }
-    std::cout << "finish move TET model" << std::endl;
-
-}
-
-// get file name in dirctory and push_back into fileNameCell with nature order
-// -onlyRead == true;  only read names without sorting
-// -onlyInit == true;  only read initial layers
-void MainWindow::_get_FileName(string dirctory, vector<string>& fileNameCell, bool onlyRead, bool onlyInit) {
-
-    if (fileNameCell.empty() == false) return;
-
-    DIR* dp;
-    struct dirent* ep;
-    string fullDir = dirctory;
-    //cout << fullDir << endl;
-    dp = opendir(fullDir.c_str());
-
-    if (dp != NULL) {
-        while (ep = readdir(dp)) {
-            //cout << ep->d_name << endl;
-            if ((string(ep->d_name) != ".") && (string(ep->d_name) != "..")) {
-                //cout << ep->d_name << endl;
-                if (onlyInit == true) {
-                    //cout << ep->d_name << endl;
-                    if (string(ep->d_name).find("S") != string::npos) continue;
-                }
-                //cout << "-->" << ep->d_name << endl;
-                fileNameCell.push_back(string(ep->d_name));
-            }
-        }
-        (void)closedir(dp);
-    }
-    else {
-        perror("Couldn't open the directory");
-    }
-    //resort the files with nature order
-    if(onlyRead == false)
-        sort(fileNameCell.begin(), fileNameCell.end(), doj::alphanum_less<std::string>());
-}
-
-// modify the Yup sys to Zup sys
-void MainWindow::_modifyCoord(QMeshPatch* patchFile) {
-
-    for (GLKPOSITION Pos = patchFile->GetNodeList().GetHeadPosition(); Pos;) {
-        QMeshNode* Node = (QMeshNode*)patchFile->GetNodeList().GetNext(Pos);
-
-        double xx, yy, zz, nx, ny, nz;
-        Node->GetCoord3D(xx, yy, zz);
-        Node->GetNormal(nx, ny, nz);
-
-        double tempPosYZ = yy;
-        double tempNorYZ = ny;
-
-        yy = -zz;
-        zz = tempPosYZ;
-
-        ny = -nz;
-        nz = tempNorYZ;
-
-        Node->SetCoord3D_last(xx, yy, zz);// base data of MoveModel
-        Node->SetNormal_last(nx, ny, nz);
-        Node->SetCoord3D(xx, yy, zz);
-        Node->SetNormal(nx, ny, nz);
-
-    }
-}
-
-// control the display of layers
-void MainWindow::viewAll_Layers() {
-
+    PolygenMesh* detectedMesh = NULL;
     for (GLKPOSITION pos = polygenMeshList.GetHeadPosition(); pos != nullptr;) {
-        PolygenMesh* polygenMesh = (PolygenMesh*)polygenMeshList.GetNext(pos);
-        if ("Layers" != polygenMesh->getModelName()) continue;
-
-        for (GLKPOSITION posMesh = polygenMesh->GetMeshList().GetHeadPosition(); posMesh != nullptr;) {
-            QMeshPatch* Patch = (QMeshPatch*)polygenMesh->GetMeshList().GetNext(posMesh);
-
-            Patch->drawThisPatch = false;//reset
-
-            if (ui->checkBox_onlyShowOnetype_layers->isChecked()) {
-
-                if (ui->radioButton_initialORsupport->isChecked()) {
-
-                    if (Patch->is_SupportLayer) continue;
-                }
-                else {
-
-                    if (!Patch->is_SupportLayer) continue;
-                }
-            }
-
-            Patch->drawThisPatch = true;
+        PolygenMesh* thispolygenMesh = (PolygenMesh*)polygenMeshList.GetNext(pos);
+        if (thispolygenMesh->meshType == type) {
+            detectedMesh = thispolygenMesh; break;
         }
     }
-
-    for (GLKPOSITION pos = polygenMeshList.GetHeadPosition(); pos != nullptr;) {
-        PolygenMesh* polygenMesh = (PolygenMesh*)polygenMeshList.GetNext(pos);
-        if ("Tight_supportLayerSet" != polygenMesh->getModelName() ||
-            !ui->radioButton_tightSupportLayerDraw->isChecked()) continue;
-
-        for (GLKPOSITION posMesh = polygenMesh->GetMeshList().GetHeadPosition(); posMesh != nullptr;) {
-            QMeshPatch* Patch = (QMeshPatch*)polygenMesh->GetMeshList().GetNext(posMesh);
-
-            Patch->drawThisPatch = true;
-        }
-    }
-    pGLK->refresh(true);
-    pGLK->Zoom_All_in_View();
+    return detectedMesh;
 }
 
-void MainWindow::change_LayerDisplay() {
+QMeshPatch* MainWindow::_detectPolygenMesh(mesh_type type, std::string patch_name) {
+
+    PolygenMesh* detectedMesh = NULL;
+    for (GLKPOSITION pos = polygenMeshList.GetHeadPosition(); pos != nullptr;) {
+        PolygenMesh* thispolygenMesh = (PolygenMesh*)polygenMeshList.GetNext(pos);
+
+        if (thispolygenMesh->meshType == type) {
+            detectedMesh = thispolygenMesh;
+            break;
+        }
+    }
+
+    if (detectedMesh == NULL) return NULL;
+
+    QMeshPatch* detectedPatch = NULL;
+    for (GLKPOSITION posMesh = detectedMesh->GetMeshList().GetHeadPosition(); posMesh != nullptr;) {
+        QMeshPatch* thisPatch = (QMeshPatch*)detectedMesh->GetMeshList().GetNext(posMesh);
+
+        if (thisPatch->patchName == patch_name) {
+            detectedPatch = thisPatch;
+            break;
+        }
+    }
+    return detectedPatch;
+}
+
+void MainWindow::update_Layer_Display() {
+
     bool single = ui->checkBox_EachLayerSwitch->isChecked();
     int currentLayerIndex = ui->spinBox_ShowLayerIndex->value();
-    bool largeIsolayer = ui->checkBox_draw_LargeISOlayers->isChecked();
 
     for (GLKPOSITION pos = polygenMeshList.GetHeadPosition(); pos != nullptr;) {
         PolygenMesh* polygenMesh = (PolygenMesh*)polygenMeshList.GetNext(pos);
-        if ("Layers" != polygenMesh->getModelName()) continue;
+        if (polygenMesh->meshType != CURVED_LAYER
+            && polygenMesh->meshType != TOOL_PATH) continue;
 
         for (GLKPOSITION posMesh = polygenMesh->GetMeshList().GetHeadPosition(); posMesh != nullptr;) {
             QMeshPatch* Patch = (QMeshPatch*)polygenMesh->GetMeshList().GetNext(posMesh);
 
             Patch->drawThisPatch = false;
 
-            if (ui->checkBox_onlyShowOnetype_layers->isChecked()) {
-
-                if (ui->radioButton_initialORsupport->isChecked()) {
-                    
-                    if (Patch->is_SupportLayer) continue;
-                }
-                else {
-
-                    if (!Patch->is_SupportLayer) continue;
-                }          
-            }
-
-            int index = Patch->GetIndexNo();
-            int largeIsolayer_index = Patch->largeLayer_Index;
-
-            if (single) {
-
-                if (largeIsolayer) {
-                    if (largeIsolayer_index == currentLayerIndex)
+            if (ui->radioButton_compatibleLayer->isChecked()) {
+                if (single) {
+                    if (Patch->compatible_layer_Index == currentLayerIndex)
                         Patch->drawThisPatch = true;
                 }
                 else {
-
-                    if (index == currentLayerIndex)
+                    if (Patch->compatible_layer_Index <= currentLayerIndex)
                         Patch->drawThisPatch = true;
                 }
             }
             else {
-                if (largeIsolayer) {
-                    if (largeIsolayer_index <= currentLayerIndex)
+
+                if (single) {
+                    if (Patch->GetIndexNo() == currentLayerIndex)
                         Patch->drawThisPatch = true;
                 }
                 else {
-                    if (index <= currentLayerIndex)
+                    if (Patch->GetIndexNo() <= currentLayerIndex)
                         Patch->drawThisPatch = true;
                 }
             }
         }
     }
 
-    for (GLKPOSITION pos = polygenMeshList.GetHeadPosition(); pos != nullptr;) {
-        PolygenMesh* polygenMesh = (PolygenMesh*)polygenMeshList.GetNext(pos);
-        if ("Tight_supportLayerSet" != polygenMesh->getModelName() ||
-            !ui->radioButton_tightSupportLayerDraw->isChecked() ) continue;
-
-        for (GLKPOSITION posMesh = polygenMesh->GetMeshList().GetHeadPosition(); posMesh != nullptr;) {
-            QMeshPatch* Patch = (QMeshPatch*)polygenMesh->GetMeshList().GetNext(posMesh);
-
-            Patch->drawThisPatch = false;//reset
-
-            if (Patch->largeLayer_Index == currentLayerIndex)
-                Patch->drawThisPatch = true;
-        }
-    }
-
-    for (GLKPOSITION pos = polygenMeshList.GetHeadPosition(); pos != nullptr;) {
-        PolygenMesh* polygenMesh = (PolygenMesh*)polygenMeshList.GetNext(pos);
-        if (
-            ("ToolPath_support" != polygenMesh->getModelName() && "ToolPath_initial" != polygenMesh->getModelName()) 
-            ||  !ui->radioButton_tightSupportLayerDraw->isChecked()
-           ) continue;
-
-        for (GLKPOSITION posMesh = polygenMesh->GetMeshList().GetHeadPosition(); posMesh != nullptr;) {
-            QMeshPatch* Patch = (QMeshPatch*)polygenMesh->GetMeshList().GetNext(posMesh);
-
-            Patch->drawThisPatch = false;//reset
-
-            if (Patch->largeLayer_Index == currentLayerIndex)
-                Patch->drawThisPatch = true;
-        }
-    }
-
     pGLK->refresh(true);
 }
 
-void MainWindow::show_ISO_Layer() {
+//change the maxLayer number
+void MainWindow::change_maxLayerNum_normalORcompatible() {
 
-    bool largeIsolayer = ui->checkBox_draw_LargeISOlayers->isChecked();
+    PolygenMesh* compatible_isoLayerSet = this->_detectPolygenMesh(CURVED_LAYER);
+    if (compatible_isoLayerSet == nullptr) { std::cerr << "No compatible layers is detected!" << std::endl; return; }
 
-    PolygenMesh* layers = _detectPolygenMesh(CURVED_LAYER, "Layers", false);
+    int max_compatible_index = -1;
+    for (GLKPOSITION posMesh = compatible_isoLayerSet->GetMeshList().GetHeadPosition(); posMesh != nullptr;) {
+        QMeshPatch* each_patch = (QMeshPatch*)compatible_isoLayerSet->GetMeshList().GetNext(posMesh);
 
-    if (layers == NULL) {
-        std::cout << "There is no needed PolygenMesh <Layers>, please check" << std::endl;
-        return;
+        if (each_patch->compatible_layer_Index > max_compatible_index)
+            max_compatible_index = each_patch->compatible_layer_Index;
     }
 
-    int max_Layer_NUM = 0;
-
-    for (GLKPOSITION posMesh = layers->GetMeshList().GetHeadPosition(); posMesh != nullptr;) {
-        QMeshPatch* Patch = (QMeshPatch*)layers->GetMeshList().GetNext(posMesh);
-
-        if (largeIsolayer) {
-
-            if (Patch->largeLayer_Index > max_Layer_NUM) 
-                max_Layer_NUM = Patch->largeLayer_Index;
-
-        }
-        else {
-            if (Patch->GetIndexNo() > max_Layer_NUM)
-                max_Layer_NUM = Patch->GetIndexNo();
-        }
-
+    if (ui->radioButton_compatibleLayer->isChecked()) {
+        ui->spinBox_ShowLayerIndex->setMaximum(max_compatible_index);
     }
-    //cout << "max layer num = " << max_Layer_NUM << endl;
-    ui->spinBox_ShowLayerIndex->setMaximum(max_Layer_NUM);
-    ui->spinBox_ShowLayerIndex->setValue(0);
+    else {
+        ui->spinBox_ShowLayerIndex->setMaximum(compatible_isoLayerSet->GetMeshList().GetCount() - 1);
+    }
 }
 
-void MainWindow::showRayOrSurface() {
-
+void MainWindow::all_Display() {
     for (GLKPOSITION pos = polygenMeshList.GetHeadPosition(); pos != nullptr;) {
         PolygenMesh* polygenMesh = (PolygenMesh*)polygenMeshList.GetNext(pos);
-        if ("Support_Ray" != polygenMesh->getModelName()) continue;
+
+        if (polygenMesh->meshType != CURVED_LAYER
+            && polygenMesh->meshType != TOOL_PATH) continue;
 
         for (GLKPOSITION posMesh = polygenMesh->GetMeshList().GetHeadPosition(); posMesh != nullptr;) {
             QMeshPatch* Patch = (QMeshPatch*)polygenMesh->GetMeshList().GetNext(posMesh);
-
-            Patch->drawThisPatch = !(Patch->drawThisPatch);
+            Patch->drawThisPatch = true;
         }
     }
+    pGLK->refresh(true);
+}
+
+void MainWindow::_update_Position_Orientation_Parameter() {
+
+    std::string modelName = this->_detectPolygenMesh(TET_MODEL)->getModelName();
+
+    if (modelName == "topopt") { 
+        this->_setParameter_4_Rot_and_Mov(0, 20, 0, 0, 0, -140); //x y z rx ry rz
+        ui->spinBox_isoLayerNumber->setValue(100);
+    }
+    else if (modelName == "bridge") {
+        this->_setParameter_4_Rot_and_Mov(0, 100, 0, 180, 0, 0);
+        ui->spinBox_isoLayerNumber->setValue(200);
+    }
+    else if (modelName == "connector2") {
+        this->_setParameter_4_Rot_and_Mov(0, 40, 0, 45, 0, 0);
+        ui->spinBox_isoLayerNumber->setValue(50);
+    }
+    else if (modelName == "dome") {
+        this->_setParameter_4_Rot_and_Mov(0, 3.0, 0, 0, 0, 0);
+        ui->spinBox_isoLayerNumber->setValue(80);
+    }
+    else {
+        this->_setParameter_4_Rot_and_Mov(0, 0, 0, 0, 0, 0);
+        ui->spinBox_isoLayerNumber->setValue(50);
+    }
+
+    ui->doubleSpinBox_offset_dist->setValue(3.0);
+}
+
+void MainWindow::_setParameter_4_Rot_and_Mov(
+    double Xmove, double Ymove, double Zmove,
+    double Xrot, double Yrot, double Zrot) {
+
+    ui->doubleSpinBox_Xmove->setValue(Xmove);
+    ui->doubleSpinBox_Ymove->setValue(Ymove);
+    ui->doubleSpinBox_Zmove->setValue(Zmove);
+    ui->doubleSpinBox_XRot->setValue(Xrot);
+    ui->doubleSpinBox_YRot->setValue(Yrot);
+    ui->doubleSpinBox_ZRot->setValue(Zrot);
+}
+
+//MainFunctions for support generation of curved pringting
+void MainWindow::readData_tetModel_and_scalarField() {
+
+    std::string modelName = ui->lineEdit_SorceDataDir->text().toStdString();
+
+    PolygenMesh* tetModel = this->_detectPolygenMesh(TET_MODEL);
+    if (tetModel == NULL) {
+
+        char filename[1024];
+        sprintf(filename, "%s%s%s", "../DataSet/TET_MODEL/", modelName.c_str(), ".tet");
+        cout << "input " << modelName << " from: " << filename << endl;
+
+        tetModel = this->_buildPolygenMesh(TET_MODEL, modelName);
+        //read tet model
+        tetModel->ImportTETFile(filename, modelName);
+        this->_update_Position_Orientation_Parameter();
+    }
+    else {
+        tetModel->ClearAll();
+        std::cout << "There is already existing a tet PolygenMesh, please check!" << std::endl;
+        return;
+    }
+
+    // read scalar field
+    QMeshPatch* model = (QMeshPatch*)tetModel->GetMeshList().GetHead();
+    model->patchName = modelName;
+    fileIO* IO_operator = new fileIO();
+    std::string input_dir = "../DataSet/temp/scalarField/" + modelName + "_scalarField.txt";
+    IO_operator->input_scalar_field(model, input_dir);
+    delete IO_operator;
+
+    // show the geometry info
+    double boundingBox[6];    model->ComputeBoundingBox(boundingBox);
+    std::cout << "\nThe Range of model:\nX:" << boundingBox[1]- boundingBox[0] << "\tY: "<<
+        boundingBox[3] - boundingBox[2] << "\tZ: " <<
+        boundingBox[5] - boundingBox[4] << std::endl;
+    std::cout << "\nThe Center of model:\nX:" << (boundingBox[1] + boundingBox[0])/2.0 << "\tY:" <<
+        (boundingBox[3] + boundingBox[2])/2.0 << "\tZ: " <<
+        (boundingBox[5] + boundingBox[4])/2.0 << std::endl;
+    std::cout << "\nThe bounding Box of model:\nXmin: " << boundingBox[0] << "\t\tXmax: " << boundingBox[1] << "\n" <<
+        "Ymin : " << boundingBox[2] << "\t\tYmax : " << boundingBox[3] << "\n" <<
+        "Zmin : " << boundingBox[4] << "\t\tZmax : " << boundingBox[5] << std::endl;
+
+    std::cout << "\nFinish readData_tetModel_and_scalarField.\n" << std::endl;
+
     pGLK->refresh(true);
     pGLK->Zoom_All_in_View();
 }
 
-void MainWindow::showTightSupportSurface() {
+void MainWindow::update_model_postion_orientation() {
 
-    bool showTightSupportLayers = ui->radioButton_tightSupportLayerDraw->isChecked();
-    if (!showTightSupportLayers) return;
+    PolygenMesh* tetModel = this->_detectPolygenMesh(TET_MODEL);
+    if (tetModel == nullptr) { std::cerr << "No tet mesh is detected!" << std::endl; return; }
+    QMeshPatch* model = (QMeshPatch*)tetModel->GetMeshList().GetHead();
 
-    PolygenMesh* tightSupportLayers = _detectPolygenMesh(CURVED_LAYER, "Tight_supportLayerSet", false);
+    double xMove = ui->doubleSpinBox_Xmove->value();
+    double yMove = ui->doubleSpinBox_Ymove->value();
+    double zMove = ui->doubleSpinBox_Zmove->value();
+    //double Phi = ui->doubleSpinBox_rot_phi->value();
+    //double Theta = ui->doubleSpinBox_rot_theta->value();
+    double xRot = ui->doubleSpinBox_XRot->value();
+    double yRot = ui->doubleSpinBox_YRot->value();
+    double zRot = ui->doubleSpinBox_ZRot->value();
 
-    if (tightSupportLayers == NULL) {
-        std::cout << "There is no needed PolygenMesh <Tight_supportLayerSet>, please check" << std::endl;
-        return;
-    }
+    this->_rot_And_Move_Model(model, xRot, yRot, zRot, xMove, yMove, zMove, false);
+    this->_modify_scalarField_order(model);
 
-    //int max_Layer_NUM = 0;
-    //for (GLKPOSITION posMesh = tightSupportLayers->GetMeshList().GetHeadPosition(); posMesh != nullptr;) {
-    //    QMeshPatch* Patch = (QMeshPatch*)tightSupportLayers->GetMeshList().GetNext(posMesh);
-    //    if (Patch->largeLayer_Index > max_Layer_NUM)    max_Layer_NUM = Patch->largeLayer_Index;
-    //}
+    ui->pushButton_readSupportSpace->setEnabled(true);
+    ui->pushButton_generateSupportSpace->setEnabled(true);
+    ui->pushButton_generate_support_structure->setEnabled(true);
 
-    //cout << "max layer num = " << max_Layer_NUM << endl;
-    ui->checkBox_EachLayerSwitch->setChecked(true);
-    ui->checkBox_onlyShowOnetype_layers->setChecked(true);
-    ui->radioButton_initialORsupport->setChecked(true);
-    ui->checkBox_draw_LargeISOlayers->setChecked(true);
-    //ui->spinBox_ShowLayerIndex->setMaximum(max_Layer_NUM);
-    ui->spinBox_ShowLayerIndex->setValue(0);
+    std::cout << "\nFinish update_model_postion_orientation.\n" << std::endl;
+
+    pGLK->Zoom_All_in_View();
+    pGLK->refresh(true);
 }
 
-void MainWindow::deSelect_origin() {
+//Euler rotation operation
+void MainWindow::_rot_And_Move_Model(QMeshPatch* m_tetModel, double xRot, double yRot, double zRot,
+    double xMove, double yMove, double zMove, bool isUpdate_lastCoord3D) {
 
-    PolygenMesh* supportRaySet = _detectPolygenMesh(SUPPORT_RAY, "Support_Ray",false);
-    if (supportRaySet == NULL) {
-        std::cout << "There is no supportRaySet PolygenMesh, please check" << std::endl;
-        return;
+    //rotate model
+    double pitch = DEGREE_TO_ROTATE(xRot);
+    double yaw = DEGREE_TO_ROTATE(yRot);
+    double roll = DEGREE_TO_ROTATE(zRot);
+
+    Eigen::AngleAxisd rollAngle(roll, Eigen::Vector3d::UnitZ());
+    Eigen::AngleAxisd yawAngle(yaw, Eigen::Vector3d::UnitY());
+    Eigen::AngleAxisd pitchAngle(pitch, Eigen::Vector3d::UnitX());
+
+    Eigen::Quaternion<double> q =  pitchAngle * yawAngle * rollAngle;
+
+    Eigen::Matrix3d rotationMatrix = q.matrix();
+    m_tetModel->model_rotMat = rotationMatrix;
+
+    for (GLKPOSITION posMesh = m_tetModel->GetNodeList().GetHeadPosition(); posMesh != nullptr;) {
+        QMeshNode* node = (QMeshNode*)m_tetModel->GetNodeList().GetNext(posMesh);
+
+        Eigen::Vector3d pp; node->GetCoord3D_last(pp(0), pp(1), pp(2));
+        Eigen::Vector3d rotatedpp = rotationMatrix * pp;
+
+        node->SetCoord3D(rotatedpp[0], rotatedpp[1], rotatedpp[2]);
+
+        //std::cout << "pp \t" << pp.transpose() << "\n";
+        //std::cout << "rotatedpp \t" << rotatedpp.transpose() << "\n\n";
+        //std::cout << "pp -  rotatedpp \t" << pp.transpose() - rotatedpp.transpose() << "\n";
     }
 
-    QMeshPatch* patch_supportRay = (QMeshPatch*)supportRaySet->GetMeshList().GetHead();
-    for (GLKPOSITION Pos = patch_supportRay->GetNodeList().GetHeadPosition(); Pos;) {
-        QMeshNode* support_Node = (QMeshNode*)patch_supportRay->GetNodeList().GetNext(Pos);
+    std::cout << "\n-----------\nRotationMatrix:\n" << rotationMatrix << std::endl;
+    std::cout << "\nxRot: " << xRot << "\tyRot: " << yRot << "\tzRot: " << zRot;
+    std::cout << "\nFinish rotate model." << std::endl;
 
-        if(ui->radioButton_deselect_origin->isChecked())
-            support_Node->deselect_origin_of_RAY = true;
-        else
-            support_Node->deselect_origin_of_RAY = false;
+    //move model
+    double pp[3];
+    for (GLKPOSITION Pos = m_tetModel->GetNodeList().GetHeadPosition(); Pos;) {
+        QMeshNode* Node = (QMeshNode*)m_tetModel->GetNodeList().GetNext(Pos);
+        Node->GetCoord3D(pp[0], pp[1], pp[2]);
 
+        pp[0] += xMove; pp[1] += yMove; pp[2] += zMove;
+        Node->SetCoord3D(pp[0], pp[1], pp[2]);
+        if (isUpdate_lastCoord3D)   Node->SetCoord3D_last(pp[0], pp[1], pp[2]);
     }
+    std::cout << "\nxMove: " << xMove << "\tyMove: " << yMove << "\tzMove: " << zMove;
+    std::cout << "\nFinish move model.\n" << std::endl;
 }
 
-// MainFunction: build support Surface
-void MainWindow::build_SupportRAY() {
+void MainWindow::_modify_scalarField_order(QMeshPatch* m_tetModel) {
 
-    PolygenMesh* tetModel = _detectPolygenMesh(TET, "tet_fabrication", true);
-    PolygenMesh* layers = _detectPolygenMesh(CURVED_LAYER, "Layers", false);
-    PolygenMesh* platform = _detectPolygenMesh(CAD_PARTS, "Platform", false);
-    PolygenMesh* supportRaySet = _buildPolygenMesh(SUPPORT_RAY, "Support_Ray");
-    PolygenMesh* tight_supportLayerSet = _buildPolygenMesh(CURVED_LAYER, "Tight_supportLayerSet");
-    PolygenMesh* toolpathSet_support = _buildPolygenMesh(TOOL_PATH, "ToolPath_support");
-    PolygenMesh* toolpathSet_initial = _buildPolygenMesh(TOOL_PATH, "ToolPath_initial");
+    double minHeight = 999999999.9;		double scalarValue_minHeight = 0.0;
+    double maxHeight = -999999999.9;	double scalarValue_maxHeight = 0.0;
+    double pp[3];
+    for (GLKPOSITION Pos = m_tetModel->GetNodeList().GetHeadPosition(); Pos;) {
+        QMeshNode* Node = (QMeshNode*)m_tetModel->GetNodeList().GetNext(Pos);
 
-    if (layers == NULL || platform == NULL || supportRaySet == NULL)
+        Node->GetCoord3D(pp[0], pp[1], pp[2]);
+        if (pp[1] > maxHeight) {
+            maxHeight = pp[1]; scalarValue_maxHeight = Node->scalarField;
+        }
+        if (pp[1] < minHeight) {
+            minHeight = pp[1]; scalarValue_minHeight = Node->scalarField;
+        }
+    }
+
+    // inverse scalar field
+    if (scalarValue_minHeight > scalarValue_maxHeight) {
+        for (GLKPOSITION Pos = m_tetModel->GetNodeList().GetHeadPosition(); Pos;) {
+            QMeshNode* Node = (QMeshNode*)m_tetModel->GetNodeList().GetNext(Pos);
+            Node->scalarField = 1.0 - Node->scalarField;
+
+            if (Node->scalarField < 0.0) Node->scalarField = 0.0;
+            if (Node->scalarField > 1.0) Node->scalarField = 1.0;
+        }
+        std::cout << "\nchange scalar_order.\n-----------\n" << std::endl;
+    }
+
+    std::cout << "\nFinish _modify_scalarField_order.\n-----------\n" << std::endl;
+}
+
+void MainWindow::build_EnvelopeCH() {
+
+    PolygenMesh* tetModel = this->_detectPolygenMesh(TET_MODEL);
+    if (tetModel == nullptr) { std::cerr << "No tet mesh is detected!" << std::endl; return; }
+    QMeshPatch* model = (QMeshPatch*)tetModel->GetMeshList().GetHead();
+
+    //platform
+    PolygenMesh* platform = this->_detectPolygenMesh(CNC_PRT);
+    if (platform == NULL) {
+        platform = this->_buildPolygenMesh(CNC_PRT, "platform");
+
+        QMeshPatch* platform_patch = new QMeshPatch;
+        platform_patch->patchName = tetModel->getModelName() + "_platform";
+        platform_patch->SetIndexNo(platform->GetMeshList().GetCount());
+        platform->GetMeshList().AddTail(platform_patch);
+
+        std::string inputFile = "../DataSet/temp/platform.obj";
+        platform_patch->inputOBJFile((char*)inputFile.c_str(), false);
+        //std::cout << "There are " << platform->GetMeshList().GetCount() << " patch(s) in the PolygenMesh\n";
+    }
+    QMeshPatch* platform_patch = (QMeshPatch*)platform->GetMeshList().GetHead();
+
+    PolygenMesh* supportEnvelope = _buildPolygenMesh(CH_ENVELOPE, "Support_Envelope");
+    PolygenMesh* supportRay = _buildPolygenMesh(SUPPORT_RAY, "Support_Ray");
+
+    if (tetModel == NULL || platform_patch == NULL || supportEnvelope == NULL || supportRay == NULL)
         std::cout << "There is no needed PolygenMesh, please check" << std::endl;
 
-    supportGene = new supportGeneration();
-    supportGene->initial(tetModel, layers, platform, supportRaySet,
-        tight_supportLayerSet, toolpathSet_support, toolpathSet_initial,
-        (ui->lineEdit_SorceDataDir->text()).toStdString());
+    supportOperator = new supportGene();
+    supportOperator->initial_4_envelope(model, platform_patch, supportEnvelope, supportRay,
+        45.0, ui->doubleSpinBox_offset_dist->value());
+    supportOperator->initial_Guess_SupportEnvelope();           //get initial support space
+    supportOperator->compute_initialGuess_EnvelopeHull();       //build convex hull of initial guess
+    delete supportOperator;
+    std::cout << "\nFinish building the convex envelope for the tetmesh." << std::endl;
 
-    //temp test: marking support region
-    if (is_TET_surface_tree_new) {
-        supportGene->markSupportFace();
-        supportGene->build_Support_Tree_fromTETsurface3();
-    }
-    else if (is_TET_surface_tree) {
-        supportGene->markSupportFace();
-        supportGene->build_Support_Tree_fromTETsurface2();
-        supportGene->collect_Support_Polyline_fromTETsurface();
-    }
-    else if (is_polyline) { // new 2: polyline from curved layers
-        supportGene->build_Support_PolyLines();
-        supportGene->collect_Support_Polyline();
-    }
-    else if (is_TET_surface_polyline) { // new 3: polyline from tetSurface and vector field
-        supportGene->markSupportFace();
-        supportGene->build_Support_Polyline_fromTETsurface();
-        supportGene->collect_Support_Polyline_fromTETsurface();
-    }
-    else if (is_TET_surface_Ray) { // new 1: ray from tetSurface and vector field
-        supportGene->markSupportFace();
-        supportGene->build_SupportRays_vertical();
-        supportGene->collect_SupportRays_vertical();
-    }
-    else { // initial: ray from curved layers
-        supportGene->build_SupportRays();
-        supportGene->collect_SupportRays();
-    }
-    std::cout << "### Collected the Support Rays." << std::endl;
-
-    ui->radioButton_showRayOrSurface->setEnabled(true);
-    ui->pushButton_buildSupportLayerSet->setEnabled(true);
-    ui->checkBox_draw_LargeISOlayers->setEnabled(true);
-    ui->radioButton_deselect_origin->setEnabled(true);
+    fileIO* IO_operator = new fileIO();
+    QMeshPatch* convexHull = (QMeshPatch*)supportEnvelope->GetMeshList().GetHead();
+    convexHull->patchName = tetModel->getModelName() + "_envelope_CH";
+    std::string output_dir = "../DataSet/temp/remesh/ch_envelope/input/";
+    IO_operator->remove_allFile_in_Dir(output_dir);
+    IO_operator->output_OBJ_Mesh(convexHull, output_dir);
+    std::cout << "Finish outputing box mesh of the envelope of tet model." << std::endl;
+    delete IO_operator;
 
     pGLK->refresh(true);
     pGLK->Zoom_All_in_View();
 }
 
-void MainWindow::build_SupportMesh() {
+void MainWindow::remeshCH() {
 
-    if (ui->checkBox_verifyByMarching->isChecked()) {
-        supportGene->build_SupportSurface_MarchingCube();
-        std::cout << "### Gotten the Cut Surface by Marching Cube \n(verify before next step)." << std::endl;
+    std::string path = "../DataSet/temp/remesh/ch_envelope/remesh.py";
+    std::cout << "\n******************************\nDouble click remesh.py to remesh: \n" 
+        << path << "\n******************************\n" << std::endl;
+    //system("C:/PHD/Code/SupportGeneration/DataSet/temp/remesh/remesh_cube.bat");
+}
+
+void MainWindow::generate_supportSpace() {
+
+    //1. obtain tet model
+    PolygenMesh* tetModel = this->_detectPolygenMesh(TET_MODEL);
+    if (tetModel == nullptr) { std::cerr << "No tet mesh is detected!" << std::endl; return; }
+
+    //2. input remeshed envelope mesh
+    PolygenMesh* ch_envelope = this->_detectPolygenMesh(CH_ENVELOPE);
+    if (ch_envelope == NULL) {
+
+        std::string ch_Name = tetModel->getModelName() + "_envelope_CH";
+        ch_envelope = this->_buildPolygenMesh(CH_ENVELOPE, ch_Name);
     }
-    else {      
-        if (is_polyline || is_TET_surface_polyline) {
-            supportGene->compute_Support_polyLlne_Field();
-        }
-        else if (is_TET_surface_tree || is_TET_surface_tree_new) { 
-            supportGene->compute_Support_tree_Field();
-        }
-        else {
-            supportGene->compute_supportRayField();
-        }
-        std::cout << "### Calculated the Field Value of Cut Surface." << std::endl;
-        supportGene->build_tight_supportLayers();
-        std::cout << "### Gotten the tight support Surfaces." << std::endl;
-        ui->radioButton_tightSupportLayerDraw->setEnabled(true);
+    QMeshPatch* cubeEnvelopeRemeshed_patch = new QMeshPatch;
+    cubeEnvelopeRemeshed_patch->patchName = tetModel->getModelName() + "_envelope_CH_remeshed";
+    cubeEnvelopeRemeshed_patch->SetIndexNo(ch_envelope->GetMeshList().GetCount());
+    ch_envelope->GetMeshList().AddTail(cubeEnvelopeRemeshed_patch);
+
+    std::string inputFile = "../DataSet/temp/remesh/ch_envelope/output/" + tetModel->getModelName() + "_envelope_CH.obj";
+    cubeEnvelopeRemeshed_patch->inputOBJFile((char*)inputFile.c_str(), false);
+    std::cout << "There are " << ch_envelope->GetMeshList().GetCount() << " patch(s) in the PolygenMesh\n";
+
+    //3. combine the boundary of tet model(*.obj) and box mesh(*.obj)
+    //4. generate the tet mesh of boxEnvelope containing boundary of tet mesh
+    //5. extract support space by Boolean operation
+    //6. output the support space
+
+    QMeshPatch* ch_remeshed = 
+        this->_detectPolygenMesh(CH_ENVELOPE, (tetModel->getModelName() + "_envelope_CH_remeshed"));
+    if (ch_remeshed == NULL) { std::cerr << "No tet remeshed box is detected!" << std::endl; return; }
+    QMeshPatch* model = (QMeshPatch*)tetModel->GetMeshList().GetHead();
+    meshOperation* meshOperator = new meshOperation;
+    meshOperator->tetMeshGeneration_extract_SupportSpace(ch_remeshed, model);
+    delete meshOperator;
+
+    std::cout << "\nFinish generate_supportSpace.\n" << std::endl;
+
+    updateTree();
+    pGLK->refresh(true);
+}
+
+void MainWindow::readData_supportSpace() {
+
+    std::string modelName = ui->lineEdit_SorceDataDir->text().toStdString();
+    modelName += "_supportSpace";
+
+    PolygenMesh* tetModel_supportSpace = this->_detectPolygenMesh(SUPPORT_TET_MODEL);
+    if (tetModel_supportSpace == NULL) {
+
+        char filename[1024];
+        sprintf(filename, "%s%s%s", "../DataSet/TET_MODEL/", modelName.c_str(), ".tet");
+        cout << "input " << modelName << " from: " << filename << endl;
+
+        tetModel_supportSpace = this->_buildPolygenMesh(SUPPORT_TET_MODEL, modelName);
+        tetModel_supportSpace->ImportTETFile(filename, modelName);
+    }
+    else {
+        tetModel_supportSpace->ClearAll();
+        std::cout << "There is already existing a tet PolygenMesh, please check!" << std::endl;
+        return;
     }
 
-    pGLK->refresh(true);
-    std::cout << "------------------------------------------- Build Support Mesh finished!" << std::endl;
-}
+    QMeshPatch* model = (QMeshPatch*)tetModel_supportSpace->GetMeshList().GetHead();
+    model->patchName = modelName;
 
-void MainWindow::get_CurvedToolpath() {
-
-    supportGene->toolPathCompute_support();
-    supportGene->toolPathCompute_initial();
+    std::cout << "\nFinish readData_supportSpace.\n" << std::endl;
 
     pGLK->refresh(true);
-    std::cout << "------------------------------------------- Build Toolpath finished!" << std::endl;
 }
 
-void MainWindow::output_Toolpath() {
+void MainWindow::transferField_2_supportSpace() {
 
-    supportGene->output_toolpath();
+    //1. obtain tet model
+    PolygenMesh* tetModel = this->_detectPolygenMesh(TET_MODEL);
+    if (tetModel == nullptr) { std::cerr << "No tet mesh is detected!" << std::endl; return; }
+    QMeshPatch* tet_model = (QMeshPatch*)tetModel->GetMeshList().GetHead();
+    
+    PolygenMesh* tetModel_supportSpace = this->_detectPolygenMesh(SUPPORT_TET_MODEL);
+    if (tetModel_supportSpace == nullptr) { std::cerr << "No tet mesh(support) is detected!" << std::endl; return; }
+    QMeshPatch* tet_sup_model = (QMeshPatch*)tetModel_supportSpace->GetMeshList().GetHead();
+
+    //2. generate vector/scalar for supportSpace
+    supportOperator = new supportGene;
+    supportOperator->initial_4_supportSpace_Extraction(tet_model, tet_sup_model);
+    //method 1: supportOperator->generate_field_4_tetMeshes();
+    //method 2: supportOperator->generate_field_4_tetMeshes_correction();
+    supportOperator->generate_field_4_tetMeshes_correction();
+    std::cout << "\nFinish transferField_2_supportSpace.\n" << std::endl;
+
     pGLK->refresh(true);
-    std::cout << "------------------------------------------- Output Toolpath finished!" << std::endl;
 }
 
-// function test
-void MainWindow::test_func() {
+void MainWindow::generate_compatible_layers() {
 
-    supportGeneration* supportGene = new supportGeneration();
+    //1. obtain tet model
+    PolygenMesh* tetModel = this->_detectPolygenMesh(TET_MODEL);
+    if (tetModel == nullptr) { std::cerr << "No tet mesh is detected!" << std::endl; return; }
+    QMeshPatch* tet_model = (QMeshPatch*)tetModel->GetMeshList().GetHead();
 
-    ////////////////////////////////////////////////////////
-    Eigen::Vector3d intersection_Node;
-    Eigen::Vector3d Op = { 0.0,0.0,1.0 };
-    Eigen::Vector3d Oo = { 0.0,0.0,-1.0 };
-    Eigen::Vector3d Ap = { 1,0.0,2.5 };
-    Eigen::Vector3d Aa = { (-sqrt(2.0) / 2.0), 0.0,(-sqrt(2.0) / 2.0) };
-    bool is_intersect = supportGene->_LineLineIntersection(intersection_Node, Op, Oo, Ap, Aa);
-    if (is_intersect) std::cout << "intersection OK, point is: " << intersection_Node.transpose() <<std::endl;
-    else std::cout << "intersection X"<< std::endl;
-    return;
-    ////////////////////////////////////////////////////////
+    PolygenMesh* tetModel_supportSpace = this->_detectPolygenMesh(SUPPORT_TET_MODEL);
+    if (tetModel_supportSpace == nullptr) { std::cerr << "No tet mesh(support) is detected!" << std::endl; return; }
+    QMeshPatch* tet_sup_model = (QMeshPatch*)tetModel_supportSpace->GetMeshList().GetHead();
 
-    Eigen::Vector3d O(0, 0, 50); // Vs
-    Eigen::Vector3d T(0, 0, 0); // Ve
-    Eigen::Vector3d queryPnt(1, 1, 50);
-    double R = 5.0;
-    double r_i = 1.2;
-    double mu1, mu2;
+    //generate compatible layers
+    std::string modelName = tet_model->patchName + "_isoLayers";
+    PolygenMesh* compatible_isoLayerSet = this->_buildPolygenMesh(CURVED_LAYER, modelName);
+    IsoLayerGeneration* slicer = new IsoLayerGeneration(tet_model);
+    slicer->generateIsoSurface(compatible_isoLayerSet, ui->spinBox_isoLayerNumber->value());
+    slicer->generateIsoSurface_support(
+        compatible_isoLayerSet, tet_sup_model, ui->spinBox_isoLayerNumber->value());
+    delete slicer;
 
-    bool intersection = supportGene->_lineIntersectSphere(O, T, queryPnt, R, mu1, mu2);
-    std::cout << "mu1: " << mu1 << "\nmu2: " << mu2 << std::endl;
+    ui->spinBox_ShowLayerIndex->setMinimum((int)0);
+    ui->radioButton_compatibleLayer->setEnabled(true);
+    ui->spinBox_ShowLayerIndex->setMaximum(compatible_isoLayerSet->GetMeshList().GetCount() - 1);
 
-    if (intersection == false) std::cout << "1: no intersection Pnt |()" << std::endl;
-    if (abs(mu1) > 1.0 && abs(mu2)>1.0) std::cout << "2: no intersection Pnt (|)" << std::endl;
+    //organize the compatible layers
+    supportOperator->organize_compatibleLayer_Index(compatible_isoLayerSet,
+        compatible_isoLayerSet->GetMeshList().GetCount() - ui->spinBox_isoLayerNumber->value());
 
-    Eigen::Vector3d iPnt_1 = O + mu1 * (T - O); //p1
-    Eigen::Vector3d iPnt_2 = O + mu2 * (T - O); //p2
+    fileIO* IO_operator = new fileIO();
+    std::string output_dir = "../DataSet/temp/remesh/compatible_layers/input/";
+    IO_operator->remove_allFile_in_Dir(output_dir);
+    IO_operator->output_compatibleLayer_4_remesh(compatible_isoLayerSet, output_dir);
+    delete IO_operator;
+    delete supportOperator;
+    std::cout << "\nFinish generate_compatible_layers. Please remesh the mesh.\n" << std::endl;
 
-    std::cout << "iPnt_1: " << iPnt_1.transpose() << "\niPnt_2: " << iPnt_2.transpose() << std::endl;
+    pGLK->refresh(true);
+}
+
+void MainWindow::generate_support_structure() {
+
+    supportOperator = new supportGene;
+
+    //tet model
+    PolygenMesh* tetModel = this->_detectPolygenMesh(TET_MODEL);
+    if (tetModel == nullptr) { std::cerr << "No tet mesh is detected!" << std::endl; return; }
+    QMeshPatch* tet_model = (QMeshPatch*)tetModel->GetMeshList().GetHead();
+
+    //iso-layers
+    std::string modelName = tet_model->patchName + "_isoLayers";
+    PolygenMesh* compatible_isoLayerSet = this->_detectPolygenMesh(CURVED_LAYER);
+    if (compatible_isoLayerSet == NULL) {
+        compatible_isoLayerSet = this->_buildPolygenMesh(CURVED_LAYER, modelName);
+    }
+    else {
+        compatible_isoLayerSet->ClearAll();
+        std::cout << "There is already existing a compatible_isoLayerSet PolygenMesh, it will be reconstructed!" << std::endl;
+    }
+
+    //platform
+    PolygenMesh* platform = this->_detectPolygenMesh(CNC_PRT);
+    if (platform == NULL) {
+        platform = this->_buildPolygenMesh(CNC_PRT, "platform");
+
+        QMeshPatch* platform_patch = new QMeshPatch;
+        platform_patch->patchName = tetModel->getModelName() + "_platform";
+        platform_patch->SetIndexNo(platform->GetMeshList().GetCount());
+        platform->GetMeshList().AddTail(platform_patch);
+
+        std::string inputFile = "../DataSet/temp/platform.obj";
+        platform_patch->inputOBJFile((char*)inputFile.c_str(), false);
+        //std::cout << "There are " << platform->GetMeshList().GetCount() << " patch(s) in the PolygenMesh\n";
+    }
+    else {
+        platform->ClearAll();
+        std::cout << "There is already existing a platform PolygenMesh, please check!" << std::endl;
+        return;
+    }
+
+    //support tree container
+    modelName = tet_model->patchName + "_supportRay";
+    PolygenMesh* tetModel_supportRay = this->_detectPolygenMesh(SUPPORT_RAY);
+    if (tetModel_supportRay == NULL) {
+        tetModel_supportRay = this->_buildPolygenMesh(SUPPORT_RAY, modelName);
+    }
+    else {
+        tetModel_supportRay->ClearAll();
+        std::cout << "There is already existing a support Ray PolygenMesh, please check!" << std::endl;
+        return;
+    }
+
+    //modify the size of platform
+    double boundingBox[6];    tet_model->ComputeBoundingBox(boundingBox);
+    Eigen::Vector4d boundingBox_vector;
+    boundingBox_vector << fabs(boundingBox[0]), fabs(boundingBox[1]), fabs(boundingBox[4]), fabs(boundingBox[5]);
+
+    QMeshPatch* platform_patch = this->_detectPolygenMesh(CNC_PRT, tetModel->getModelName() + "_platform");
+    if (platform == NULL) { std::cerr << "No platform is detected!" << std::endl; return; }
+    platform_patch->ComputeBoundingBox(boundingBox);
+    double xmax_platform = boundingBox[1];
+    for (GLKPOSITION Pos = platform_patch->GetNodeList().GetHeadPosition(); Pos;) {
+        QMeshNode* Node = (QMeshNode*)platform_patch->GetNodeList().GetNext(Pos);
+
+        double xx, yy, zz;
+        Node->GetCoord3D(xx, yy, zz);
+
+        
+        xx *= boundingBox_vector.maxCoeff() / xmax_platform * 1.2;
+        zz *= boundingBox_vector.maxCoeff() / xmax_platform * 1.2;
+
+        Node->SetCoord3D(xx, yy, zz);
+    }
+
+    //read the remeshed layers
+    fileIO* IO_operator = new fileIO();
+    std::string path = "../DataSet/temp/remesh/compatible_layers/output";
+    IO_operator->input_remeshed_compatibleLayer(compatible_isoLayerSet, path);
+    delete IO_operator;
+
+    double detect_overhang_angle;
+    if (tetModel->getModelName() == "dome") detect_overhang_angle = 50;
+    else detect_overhang_angle = 45;
+
+    supportOperator->initial_4_treeGeneration(tet_model, 
+        compatible_isoLayerSet, platform_patch, tetModel_supportRay, detect_overhang_angle);
+    supportOperator->generate_support_tree();
+    
+    //update the display
+    ui->spinBox_ShowLayerIndex->setMinimum((int)0);
+    ui->radioButton_compatibleLayer->setEnabled(true);
+    ui->radioButton_compatibleLayer->setChecked(false);
+    ui->spinBox_ShowLayerIndex->setMaximum(compatible_isoLayerSet->GetMeshList().GetCount() - 1);
+
+    std::cout << "\nFinish generate_support_structure.\n" << std::endl;
+
+    pGLK->refresh(true);
+    pGLK->Zoom_All_in_View();
+}
+
+void MainWindow::extract_slim_supportLayer() {
+
+    supportOperator->compute_Support_tree_Field();
+    std::cout << "Finish the implicit field calculation." << std::endl;
+    supportOperator->build_tight_supportLayers();
+    std::cout << "Finish the tight support layer generation." << std::endl;
+    delete supportOperator;
+
+    PolygenMesh* layerSet = this->_detectPolygenMesh(CURVED_LAYER);
+    if (layerSet == NULL) {
+        std::cerr << "There is no layer set, please check." << std::endl; return;
+    }
+    fileIO* IO_operator = new fileIO();
+    std::string path = "../DataSet/temp/remesh/slimed_layers/input/";
+    IO_operator->remove_allFile_in_Dir(path);
+    IO_operator->outputIsoSurfaceSet(layerSet, true, path, true);
+    delete IO_operator;
+
+    ui->spinBox_ShowLayerIndex->setMaximum(layerSet->GetMeshList().GetCount() - 1);
+
+    std::cout << "\nFinish slim support layer generation. please remesh them.\n" << std::endl;
+
+    pGLK->refresh(true);
+}
+
+void MainWindow::toolPath_Generation() {
+
+    PolygenMesh* compatible_isoLayerSet = this->_detectPolygenMesh(CURVED_LAYER);
+    if (compatible_isoLayerSet == NULL) {
+        compatible_isoLayerSet = _buildPolygenMesh(CURVED_LAYER, "compatible_isoLayers");
+    }
+    else {
+        compatible_isoLayerSet->ClearAll();
+        //polygenMeshList.Remove(supportModelSet);
+        std::cout << "There is already existing a compatible_isoLayers PolygenMesh, it has been reconstructed!" << std::endl;
+    }
+
+    fileIO* IO_operator = new fileIO();
+    std::string path = "../DataSet/temp/remesh/slimed_layers/output";
+    IO_operator->input_remeshed_init_and_slimSupport_layers(compatible_isoLayerSet, path);
     
 
-    double s1 = MAX(0, (O - iPnt_1).dot(iPnt_2 - iPnt_1) / (iPnt_2 - iPnt_1).squaredNorm());
-    double s2 = MIN(1, (T - iPnt_1).dot(iPnt_2 - iPnt_1) / (iPnt_2 - iPnt_1).squaredNorm());
+    PolygenMesh* toolpathSet = this->_buildPolygenMesh(TOOL_PATH, "toolPath");
+    toolpathGeneration* ToolPathComp_layer = new toolpathGeneration(compatible_isoLayerSet, toolpathSet,
+        ui->doubleSpinBox_toolPathWidth->value(), ui->doubleSpinBox_toolPathDistance->value());
 
-    std::cout << "s1: " << s1 << "\ns2: " << s2 << std::endl;
-    std::cout << "------------------" << std::endl;
-
-    double l = (iPnt_2 - iPnt_1).norm();
-    double a = (queryPnt - iPnt_1).dot(iPnt_2 - iPnt_1);
+    ToolPathComp_layer->generate_all_toolPath();
+    delete ToolPathComp_layer;
 
 
-    double F_queryPnt_eachRay = r_i / 15.0 / pow(R, 4) * (
-        (3 * pow(l, 4) * pow(s2, 5) - 15 * a * pow(l, 2) * pow(s2, 4) + 20 * pow(a, 2) * pow(s2, 3))
-        - (3 * pow(l, 4) * pow(s1, 5) - 15 * a * pow(l, 2) * pow(s1, 4) + 20 * pow(a, 2) * pow(s1, 3)));
+    path = "../DataSet/temp/remesh/slimed_layers/output";
+    IO_operator->output_toolpath(toolpathSet, true, false);
+    delete IO_operator;
 
-    cout << "F_queryPnt_eachRay = " << F_queryPnt_eachRay << std::endl;
-
+    ui->radioButton_compatibleLayer->setEnabled(true);
+    ui->spinBox_ShowLayerIndex->setMaximum(compatible_isoLayerSet->GetMeshList().GetCount() - 1);
+    pGLK->refresh(true);
+    pGLK->Zoom_All_in_View();
+    std::cout << "Finish generating toolpath in the materialSpace.\n" << std::endl;
 }
 
-void MainWindow::on_pushButton_clearAll_clicked()
-{
-    for (GLKPOSITION pos = polygenMeshList.GetHeadPosition(); pos != nullptr;) {
-        PolygenMesh* polygenMesh = (PolygenMesh*)polygenMeshList.GetNext(pos);
-        pGLK->DelDisplayObj(polygenMesh);
+void MainWindow::UR_robot_waypoint_Generation() {
+
+    this->on_pushButton_clearAll_clicked();
+
+    PolygenMesh* isoLayerSet = this->_detectPolygenMesh(CURVED_LAYER);
+    if (isoLayerSet == NULL) {
+        isoLayerSet = this->_buildPolygenMesh(CURVED_LAYER, "IsoLayer");
     }
-    polygenMeshList.RemoveAll();
-    pGLK->ClearDisplayObjList();
-    pGLK->refresh();
-    updateTree();
+    else {
+        isoLayerSet->ClearAll();
+        std::cout << "There is already existing a isoLayerSet PolygenMesh, it will be reconstructed!" << std::endl;
+    }
+
+    PolygenMesh* toolpathSet = this->_detectPolygenMesh(TOOL_PATH);
+    if (toolpathSet == NULL) {
+        toolpathSet = this->_buildPolygenMesh(TOOL_PATH, "Toolpath");
+    }
+    else {
+        toolpathSet->ClearAll();
+        std::cout << "There is already existing a toolpathSet PolygenMesh, it will be reconstructed!" << std::endl;
+    }
+
+    fileIO* IO_operator = new fileIO();
+    std::string FileDir = "../DataSet/temp/robotWpGeneration/";
+    int layerNum = IO_operator->read_layer_toolpath_files(
+        isoLayerSet, toolpathSet, FileDir);
+    ui->spinBox_ShowLayerIndex->setMaximum(layerNum - 1);
+
+    //platform
+    PolygenMesh* platform = this->_detectPolygenMesh(CNC_PRT);
+    if (platform == NULL) {
+        platform = this->_buildPolygenMesh(CNC_PRT, "platform");
+
+        QMeshPatch* platform_patch = new QMeshPatch;
+        platform_patch->patchName = "patch_platform";
+        platform_patch->SetIndexNo(platform->GetMeshList().GetCount());
+        platform->GetMeshList().AddTail(platform_patch);
+
+        std::string inputFile = "../DataSet/temp/platform_zup.obj";
+        platform_patch->inputOBJFile((char*)inputFile.c_str(), false);
+
+        //std::cout << "platform_patch->drawThisPatch = " << platform_patch->drawThisPatch << std::endl;
+        //std::cout << "There are " << platform->GetMeshList().GetCount() << " patch(s) in the PolygenMesh\n";
+    }
+    else {
+        std::cout << "There is already existing a platform PolygenMesh, please check!" << std::endl;
+        return;
+    }
+
+    robotWpGeneration* rob_wp = new robotWpGeneration();
+    rob_wp->initial(isoLayerSet, toolpathSet, platform, ui->doubleSpinBox_toolPathWidth->value());
+    rob_wp->calDHW();
+    rob_wp->modify_wp_normal(false);
+    delete rob_wp; 
+
+    FileDir = "../DataSet/temp/robotWpGeneration/toolpath_robot_ur/";
+    IO_operator->output_toolpath_UR5e(toolpathSet, FileDir);
+    delete IO_operator;
+
+    pGLK->refresh(true);
+    pGLK->Zoom_All_in_View();
+    std::cout << "Finish generating waypoints for UR5e robot.\n" << std::endl;
+
 }

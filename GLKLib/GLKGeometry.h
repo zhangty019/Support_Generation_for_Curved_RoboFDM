@@ -411,7 +411,6 @@ public:
 	void RotatePointAlongVector(double px, double py, double pz, 
 				double x1, double y1, double z1, double x2, double y2, double z2,
 				double angle, double &px1, double &py1, double &pz1);
-	void RotateAroundVector(double vecToBeRotated[], double rotAxis[], double angle);
 
 	//////////////////////////////////////////////////////////////////////
 	// To sort an array by the quick-sort algorithm 

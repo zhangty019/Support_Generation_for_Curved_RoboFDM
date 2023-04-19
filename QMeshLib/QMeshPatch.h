@@ -53,6 +53,7 @@ public:
 	bool inputMFile(char* filename);
 	bool inputPLY2File(char* filename);
 	bool inputOFFFile(char* filename, bool bOBTFile = false);
+	bool inputPosNorFile(char* filename);
 
     void outputOBJFile(char* filename, bool bOBTFile=false);
 	void outputTrglOBJFile(char* filename);
@@ -69,19 +70,39 @@ public:
     QMeshPatch *CopyMesh();
     //for volume mesh
 	bool isVolume;
-	//bool runTopOpt = false;
-
+	// for Curved CCF Printing
+	void CreateCube(double boundingBox[]);
+	
 	bool drawThisPatch = true;
-	std::string patchName = "";
-	bool is_SupportLayer = false;
-	int largeLayer_Index = -1; // collect the index of large sorce layer for splited layers
-	bool drawSupportField = false; // for implicit surface field ¡°drawing¡±
-	double average_boundary_edge_length = 0.0;
-	QMeshPatch* attached_layer_for_toolpath = NULL;
+	bool drawSupportField = false;
+	bool drawStressField = false;
+	bool drawOverhangFace = false;
+	bool tree_4Dfm = true;
 
-	int max_segment_NUM = -1; //record ployline segment num;
+	std::string patchName = "";
+	double max_segment_NUM = -1;
+	bool is_SupportLayer = false;
+	bool is_Slimmed_SupportLayer = false;
+	int compatible_layer_Index = -1;
+	double isoSurfaceValue = 0.0;
 	int max_branch_NUM = -1;//record max branch num of a support-structure tree
 	int max_height = -1; //record max height of a support-structure tree
+
+	int splitIndex;// io operation
+
+	QMeshPatch* attached_Layer = NULL; //toolpath on which layer
+	bool isInstalled_toolpath = false;
+	bool isStressLayer = false; // for stress guided toolpath generation
+
+	double minPrincipleStressValue = 0;// the first Principle stress value
+	double maxPrincipleStressValue = 0;
+	double minStressValue = 0;// raw data
+	double maxStressValue = 0; 
+
+	Eigen::Matrix3d model_rotMat = Eigen::Matrix3d::Identity();
+
+	//root Waypoint patch of each jump section
+	QMeshPatch* rootPatch_jumpPatch = NULL;
 
 private:
 	int indexno;			// start from 1 to n  

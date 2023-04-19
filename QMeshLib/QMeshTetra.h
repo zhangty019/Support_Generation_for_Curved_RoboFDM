@@ -105,8 +105,36 @@ public:
 	int GetNodeIndex(QMeshNode* node);
 
 	int tet_node_index[4];
-	bool isChamber[4] = { false,false,false,false };
-	Eigen::Vector3d vectorField = { 0.0,0.0,0.0 };
+	bool isIn_tetSurfaceMesh = false;
+	Eigen::Vector3d vectorField = Eigen::Vector3d::Zero();
+	Eigen::Vector3d gradient_scalarField = Eigen::Vector3d::Zero();
+	bool isVectorSource = false;
+	bool isBottomTet = false;
+	Eigen::MatrixXd VolumeMatrix = Eigen::MatrixXd::Zero(4, 3); // matrix used in field computing
+
+	Eigen::VectorXd eleStress;
+	//stress tensor in format
+	//eleStress(1), eleStress(4), eleStress(5),
+	//eleStress(4), eleStress(2), eleStress(6),
+	//eleStress(5), eleStress(6), eleStress(3)
+	double sigma_max, sigma_mid, sigma_min; // principle stress absolutely value
+	Eigen::Vector3d tau_max, tau_mid, tau_min; // principle stress dir
+	bool isTensileorCompressSelect = false;
+	bool lessNeighborFlag = false;
+	int stressIndex; //# from 0, used for stress sorting (critical region selection)
+	std::vector<QMeshTetra*> neighborCell;// store neighbor ele
+
+	Eigen::Matrix3d R_estimate = Eigen::Matrix3d::Zero(3, 3);//initial SVD
+	Eigen::Quaterniond R_quaternion = Eigen::Quaterniond::Identity();
+	Eigen::Vector3d scaleValue_vector = Eigen::Vector3d::Zero();
+
+	bool is_holeRegion = false;
+	Eigen::Vector3d holeDir = Eigen::Vector3d::Zero();
+	int hole_index = 0;//index = -1(inital), 0(other), 1(1st Hole), 2(2st Hole)...
+
+	bool is_surfKeptRegion = false;
+	QMeshFace* kept_Face = NULL;
+
 };
 
 #endif 

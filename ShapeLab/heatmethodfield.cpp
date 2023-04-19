@@ -30,6 +30,69 @@ void heatMethodField::compBoundaryHeatKernel() {
     //printf("--> Compute Boundary HEAT Field Finish\n");
 }
 
+void heatMethodField::compZigZagHeatKernel() {
+    _initZigZagHeatKernel();
+    runHeatMethod();
+
+    /*After compute, install the geo-Field to zigzag field*/
+    for (GLKPOSITION Pos = surfaceMesh->GetNodeList().GetHeadPosition(); Pos;) {
+        QMeshNode* Node = (QMeshNode*)surfaceMesh->GetNodeList().GetNext(Pos);
+
+        Node->zigzagValue = Node->geoFieldValue;
+    }
+
+    //printf("--> Compute ZigZag HEAT Field Finish\n");
+}
+
+void heatMethodField::compZigZagFieldValue() {
+
+    // -- plane cut direction -- //
+    Eigen::Vector3d direction = Eigen::Vector3d::Zero();
+    //cross-section infill
+    if (surfaceMesh->compatible_layer_Index % 2 == 0) { // the model shoule be Y up, please check!
+        direction[0] = -1.0; direction[2] = 1.0;}
+    else { direction[0] = 1.0; direction[2] = 1.0;}
+    ////temp_bunny use
+    //if (surfaceMesh->compatible_layer_Index >= 114
+    //    && surfaceMesh->compatible_layer_Index <= 140) {
+    //    direction[0] = 0.7; direction[2] = -1.0;
+    //}
+    ////temp_armadillo use
+    //if face has stessFilament_flag, direction will be updated
+    // z-Dir of armadillo are larger than 0 to make it compatible
+    //project the direciton[3] onto the curved layers
+    for (GLKPOSITION Pos = surfaceMesh->GetFaceList().GetHeadPosition(); Pos;) {
+        QMeshFace* Face = (QMeshFace*)surfaceMesh->GetFaceList().GetNext(Pos);
+        Face->printingDir = direction;
+        if (surfaceMesh->isStressLayer) {
+            Face->printingDir = Face->stessFilament_vector;
+            //std::cout << "\nFace->printingDir.\n" << Face->printingDir.transpose() << std::endl;
+            if (Face->printingDir[2] < 0.0) Face->printingDir = -Face->printingDir;
+        }
+
+        Eigen::Vector3d faceNorm;
+        Face->CalPlaneEquation();
+        Face->GetNormal(faceNorm(0), faceNorm(1), faceNorm(2));
+        faceNorm = faceNorm.normalized();
+        double dotProduct = Face->printingDir.dot(faceNorm);
+        Eigen::Vector3d planeNorm = Face->printingDir - dotProduct * faceNorm;
+        Face->printingDir = planeNorm.normalized();
+        //std::cout << "zigzag dir : " << Face->printingDir.transpose() << std::endl;
+    }
+
+    //--temp use for yuming
+    //direction = Eigen::Vector3d::Zero();
+    //if (surfaceMesh->compatible_layer_Index % 2 == 0) {
+    //    direction[0] = 1.0; direction[1] = 0.0;
+    //}
+    //else { direction[0] = 1.0; direction[1] = -0.0; }
+    for (GLKPOSITION Pos = surfaceMesh->GetFaceList().GetHeadPosition(); Pos;) {
+        QMeshFace* Face = (QMeshFace*)surfaceMesh->GetFaceList().GetNext(Pos);
+        Face->printingDir = direction.normalized();
+    }
+    this->scalarFieldCompute_zigzag();
+}
+
 //void heatMethodField::inputStressFieldValue() {
 //
 //    FILE* fp = fopen("../Model/Surface_Mesh/1700field.txt", "r");
@@ -69,6 +132,103 @@ void heatMethodField::_initBoundaryHeatKernel() {
         if (edge->IsBoundaryEdge() == true) {
             edge->GetStartPoint()->geoFieldValue = 1; edge->GetEndPoint()->geoFieldValue = 1;
             edge->GetStartPoint()->selected = true; edge->GetEndPoint()->selected = true;
+        }
+    }
+}
+
+void heatMethodField::_initZigZagHeatKernel() {
+
+    // -- plane cut direction -- //
+    double direction[3] = { 0.0 };
+
+    //cross-section infill
+
+    if (surfaceMesh->compatible_layer_Index %2  == 0) { 
+        direction[0] = 1.0; direction[2] = 0.0; 
+    } 
+    else {
+        direction[0] = 0.0; direction[2] = 1.0;
+    }
+
+    //std::cout << surfaceMesh->patchName << ", " << "support mesh? " << surfaceMesh->is_SupportLayer << " , "
+        //<< direction[0] << " , " << direction[1] << " , " << direction[2] << std::endl;
+
+    bool PCAorGiven_direction = false;
+    if(PCAorGiven_direction)    this->planeCutSelection(NULL);
+    else this->planeCutSelection(direction);
+}
+
+//we can input a plane equation to cut the given mesh for this function
+void heatMethodField::planeCutSelection(double direction[]) {
+
+    Eigen::MatrixXd points(surfaceMesh->GetNodeNumber(), 3);
+    int index = 0;
+    for (GLKPOSITION Pos = surfaceMesh->GetNodeList().GetHeadPosition(); Pos;) {
+        QMeshNode* Node = (QMeshNode*)surfaceMesh->GetNodeList().GetNext(Pos);
+        Node->GetCoord3D(points(index, 0), points(index, 1), points(index, 2));
+        index++;
+    }
+    Eigen::Vector3d centroid = points.colwise().mean();
+    Eigen::Vector3d cutDir = { 0.0,0.0,0.0 };
+
+    // Subtract mean image from the data set to get mean centered data vector
+    Eigen::MatrixXd U = points.rowwise() - centroid.transpose();
+    // Covariance matrix from the mean centered data matrix
+    Eigen::MatrixXd covariance = (U.transpose() * U) / (double)(points.rows());
+    // Calculate eigenvectors
+    Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> eigenSolver(covariance, Eigen::ComputeEigenvectors);
+    Eigen::Matrix3d eigenvectorsMatrix = eigenSolver.eigenvectors();
+    Eigen::Vector3d eigenvalue = eigenSolver.eigenvalues();
+    //std::cout << "eigenvalue = " << std::endl << eigenvalue << std::endl;
+    //std::cout << "eigenvectorsMatrix = " << std::endl << eigenvectorsMatrix << std::endl;
+
+    std::ptrdiff_t Maxindex;
+    //eigenvalue.maxCoeff(&index); //Max principle stress
+    (eigenvalue.cwiseAbs()).maxCoeff(&Maxindex); //Max principle stress (ABS)
+    cutDir = eigenvectorsMatrix.col(Maxindex);
+
+    if (direction != NULL) {
+        for (int i = 0; i < 3; i++) cutDir(i) = direction[i];
+    }
+    cutDir.normalize();
+
+    /*Plane equation: Ax+By+Cz+D = 0, detect the intersect triangle*/
+    double D = 0.0;
+    for (int i = 0; i < 3; i++) D -= centroid(i) * cutDir(i);
+    for (GLKPOSITION Pos = surfaceMesh->GetFaceList().GetHeadPosition(); Pos;) {
+        QMeshFace* Face = (QMeshFace*)surfaceMesh->GetFaceList().GetNext(Pos);
+        Face->isIntersetwithPlane = false;
+        int side = 0;
+        for (int i = 0; i < 3; i++) {
+            double pp[3];
+            Face->GetNodeRecordPtr(i)->GetCoord3D(pp[0], pp[1], pp[2]);
+            double planeDetect = cutDir(0) * pp[0] + cutDir(1) * pp[1] + cutDir(2) * pp[2] + D;
+            if (abs(planeDetect) < 0.00000001) std::cout << "special case!!!" << std::endl;
+            if (planeDetect > 0) side++;
+        }
+        if (side == 1 || side == 2) {
+            Face->isIntersetwithPlane = true;
+            //std::cout << "Plane selected !" << std::endl;
+        }
+    }
+
+    /*set Initial Seed Point Value with their distance to the interset edge*/
+    for (GLKPOSITION Pos = surfaceMesh->GetNodeList().GetHeadPosition(); Pos;) {
+        QMeshNode* Node = (QMeshNode*)surfaceMesh->GetNodeList().GetNext(Pos);
+        Node->geoFieldValue = 0.0;
+        Node->selected = false;
+    }
+
+    for (GLKPOSITION Pos = surfaceMesh->GetFaceList().GetHeadPosition(); Pos;) {
+        QMeshFace* Face = (QMeshFace*)surfaceMesh->GetFaceList().GetNext(Pos);
+        if (Face->isIntersetwithPlane) {
+            for (int i = 0; i < 3; i++) {
+                double pp[3];
+                Face->GetNodeRecordPtr(i)->GetCoord3D(pp[0], pp[1], pp[2]);
+                double planeDetect = cutDir(0) * pp[0] + cutDir(1) * pp[1] + cutDir(2) * pp[2] + D;
+                Face->GetNodeRecordPtr(i)->geoFieldValue = planeDetect;
+                Face->GetNodeRecordPtr(i)->selected = true;
+            }
         }
     }
 }
@@ -130,9 +290,9 @@ void heatMethodField::heatMethodPreProcess(){
 
     double mean_edge_length = meanEdgeLength();
 
-    t = mean_edge_length * mean_edge_length;
+    t = 1.0 * mean_edge_length * mean_edge_length;
 
-    F = A - t * L;
+    F = A - t * L; // increase the t for smoother heat fusion
 
     heatSolver.compute(F);
 }
@@ -586,7 +746,7 @@ void heatMethodField::meshRefinement() {
     int index = 0;
     for (GLKPOSITION Pos = surfaceMesh->GetNodeList().GetHeadPosition(); Pos;) {
         QMeshNode* Node = (QMeshNode*)surfaceMesh->GetNodeList().GetNext(Pos);
-        double pp[3]; Node->GetCoord3D(pp); Node->SetIndexNo(index); //scalarField(index) = Node->zigzagValue;
+        double pp[3]; Node->GetCoord3D(pp[0],pp[1],pp[2]); Node->SetIndexNo(index); //scalarField(index) = Node->zigzagValue;
         for (int i = 0; i < 3; i++) nodeTable[index * 3 + i] = (float)pp[i];
         index++;
     }
@@ -595,7 +755,7 @@ void heatMethodField::meshRefinement() {
     for (GLKPOSITION Pos = surfaceMesh->GetEdgeList().GetHeadPosition(); Pos;) {
         QMeshEdge* Edge = (QMeshEdge*)surfaceMesh->GetEdgeList().GetNext(Pos);
         double p1[3], p2[3];
-        Edge->GetStartPoint()->GetCoord3D(p1); Edge->GetEndPoint()->GetCoord3D(p2);
+        Edge->GetStartPoint()->GetCoord3D(p1[0],p1[1],p1[2]); Edge->GetEndPoint()->GetCoord3D(p2[0], p2[1], p2[2]);
         //scalarField(index + surfaceMesh->GetNodeNumber()) = (Edge->GetStartPoint()->zigzagValue + Edge->GetEndPoint()->zigzagValue) / 2;
         for (int i = 0; i < 3; i++) nodeTable[(index + surfaceMesh->GetNodeNumber()) * 3 + i] = (float)((p1[i] + p2[i]) / 2);
         Edge->refineNodeIndex = index; index++;
@@ -637,4 +797,91 @@ void heatMethodField::meshRefinement() {
     free(faceTable);
 
     //std::cout << "--> Refine Mesh Finish (one time)" << std::endl;
+}
+
+bool heatMethodField::scalarFieldCompute_zigzag() {
+
+    int index = 0;
+    for (GLKPOSITION Pos = surfaceMesh->GetNodeList().GetHeadPosition(); Pos;) {
+        QMeshNode* Node = (QMeshNode*)surfaceMesh->GetNodeList().GetNext(Pos);
+        Node->SetIndexNo(index); index++;
+    }
+
+    Eigen::SparseMatrix<double> Parameter(3 * surfaceMesh->GetFaceNumber(), surfaceMesh->GetNodeNumber()); //A
+
+    Eigen::VectorXd guideField(surfaceMesh->GetNodeNumber()); //x
+
+    Eigen::VectorXd b(3 * surfaceMesh->GetFaceNumber()); //b
+    b.setZero();
+
+    std::vector<Eigen::Triplet<double>> ParaTriplet;
+
+    index = 0;
+    for (GLKPOSITION Pos = surfaceMesh->GetFaceList().GetHeadPosition(); Pos;) {
+        QMeshFace* Face = (QMeshFace*)surfaceMesh->GetFaceList().GetNext(Pos);
+        Face->SetIndexNo(index); index++;
+        double weight = 1.0;
+
+        double faceAera = Face->CalArea();
+
+        Eigen::Matrix3d faceMatrixPara, faceNodeCoord;
+        for (int i = 0; i < 3; i++) {
+            QMeshNode* Node = Face->GetNodeRecordPtr(i);
+            Node->GetCoord3D(faceNodeCoord(i, 0), faceNodeCoord(i, 1), faceNodeCoord(i, 2));
+        }
+        faceMatrixPara.row(0) = (faceNodeCoord.row(2) - faceNodeCoord.row(1)) / (2 * faceAera);
+        faceMatrixPara.row(1) = (faceNodeCoord.row(0) - faceNodeCoord.row(2)) / (2 * faceAera);
+        faceMatrixPara.row(2) = (faceNodeCoord.row(1) - faceNodeCoord.row(0)) / (2 * faceAera);
+
+        for (int j = 0; j < 3; j++) {
+            for (int i = 0; i < 3; i++) {
+                QMeshNode* Node = Face->GetNodeRecordPtr(i);
+                ParaTriplet.push_back(Eigen::Triplet<double>(
+                    Face->GetIndexNo() * 3 + j, Node->GetIndexNo(), faceMatrixPara(i, j) * weight)); // infill A
+            }
+        }
+
+        for (int i = 0; i < 3; i++) b(Face->GetIndexNo() * 3 + i) = Face->printingDir(i) * weight; // infill B
+    }
+
+    Parameter.setFromTriplets(ParaTriplet.begin(), ParaTriplet.end());
+
+    Eigen::SparseMatrix<double> ATA(surfaceMesh->GetNodeNumber(), surfaceMesh->GetNodeNumber());
+    ATA = Parameter.transpose() * Parameter;
+    Eigen::SparseLU <Eigen::SparseMatrix<double>> Solver;
+
+    //Solver.compute(ATA);
+    Solver.analyzePattern(ATA);
+    Solver.factorize(ATA);
+    if (Solver.info() != Eigen::Success) {
+        cout << "this layer has error computing scalar field !" << endl; 
+        return false;
+    }
+
+    Eigen::VectorXd ATb(surfaceMesh->GetNodeNumber());
+    ATb = Parameter.transpose() * b;
+    guideField = Solver.solve(ATb);
+
+    Eigen::VectorXd guideFieldNormalize(surfaceMesh->GetNodeNumber());
+    // compute max and min phis
+    double minPhi = INFINITY;
+    double maxPhi = -INFINITY;
+
+    for (int i = 0; i < surfaceMesh->GetNodeNumber(); i++) {
+        if (minPhi > guideField(i)) minPhi = guideField(i);
+        if (maxPhi < guideField(i)) maxPhi = guideField(i);
+    }
+    double range = maxPhi - minPhi;
+
+    for (int i = 0; i < surfaceMesh->GetNodeNumber(); i++)
+        guideFieldNormalize(i) = 1 - (guideField(i) - minPhi) / range;
+
+    for (GLKPOSITION Pos = surfaceMesh->GetNodeList().GetHeadPosition(); Pos;) {
+        QMeshNode* Node = (QMeshNode*)surfaceMesh->GetNodeList().GetNext(Pos);
+        
+        Node->zigzagValue = guideFieldNormalize(Node->GetIndexNo());
+
+    }
+
+    return true;
 }

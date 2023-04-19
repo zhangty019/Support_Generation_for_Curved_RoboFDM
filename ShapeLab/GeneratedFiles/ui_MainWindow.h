@@ -25,6 +25,7 @@
 #include <QtWidgets/QMenuBar>
 #include <QtWidgets/QPushButton>
 #include <QtWidgets/QRadioButton>
+#include <QtWidgets/QSpacerItem>
 #include <QtWidgets/QSpinBox>
 #include <QtWidgets/QStatusBar>
 #include <QtWidgets/QToolBar>
@@ -76,16 +77,17 @@ public:
     QDockWidget *dockWidget;
     QWidget *dockWidgetContents;
     QVBoxLayout *verticalLayout;
-    QLabel *label_MANY_3DP_CNC_CAM;
-    QHBoxLayout *horizontalLayout_9;
+    QLabel *label_13;
+    QLabel *label_2;
+    QFrame *line;
+    QLabel *label;
+    QHBoxLayout *horizontalLayout_16;
     QLabel *label_PosNorFile;
     QLineEdit *lineEdit_SorceDataDir;
-    QFrame *line;
+    QPushButton *pushButton_readData;
+    QHBoxLayout *horizontalLayout_10;
     QLabel *label_5;
-    QPushButton *pushButton_Comp_initialGuess_envelopSupport;
-    QFrame *line_6;
-    QFrame *line_7;
-    QLabel *label;
+    QPushButton *pushButton_model_positionUpdate;
     QHBoxLayout *horizontalLayout_11;
     QLabel *label_Xmove;
     QDoubleSpinBox *doubleSpinBox_Xmove;
@@ -93,38 +95,45 @@ public:
     QDoubleSpinBox *doubleSpinBox_Ymove;
     QLabel *label_Zmove;
     QDoubleSpinBox *doubleSpinBox_Zmove;
-    QPushButton *pushButton_readGcodeSourceData;
-    QFrame *line_4;
-    QLabel *label_3;
     QHBoxLayout *horizontalLayout_2;
-    QLabel *label_2;
+    QLabel *label_3;
+    QDoubleSpinBox *doubleSpinBox_XRot;
+    QLabel *label_4;
+    QDoubleSpinBox *doubleSpinBox_YRot;
+    QLabel *label_18;
+    QDoubleSpinBox *doubleSpinBox_ZRot;
+    QHBoxLayout *horizontalLayout_6;
+    QLabel *label_7;
+    QDoubleSpinBox *doubleSpinBox_offset_dist;
+    QSpacerItem *horizontalSpacer;
+    QPushButton *pushButton_buildEnvelopeCH;
+    QHBoxLayout *horizontalLayout_5;
+    QPushButton *pushButton_remeshCH;
+    QPushButton *pushButton_generateSupportSpace;
+    QPushButton *pushButton_readSupportSpace;
+    QPushButton *pushButton_transferField_2_SupportSpace;
+    QHBoxLayout *horizontalLayout_7;
+    QPushButton *pushButton_generateCompatibleLayers;
+    QLabel *label_14;
+    QSpinBox *spinBox_isoLayerNumber;
+    QHBoxLayout *horizontalLayout_8;
+    QLabel *label_15;
     QSpinBox *spinBox_ShowLayerIndex;
     QCheckBox *checkBox_EachLayerSwitch;
+    QRadioButton *radioButton_compatibleLayer;
     QPushButton *pushButton_ShowAllLayers;
-    QLabel *label_4;
-    QHBoxLayout *horizontalLayout_4;
-    QHBoxLayout *horizontalLayout_5;
-    QCheckBox *checkBox_onlyShowOnetype_layers;
-    QRadioButton *radioButton_initialORsupport;
-    QCheckBox *checkBox_draw_LargeISOlayers;
-    QFrame *line_5;
-    QHBoxLayout *horizontalLayout_6;
-    QPushButton *pushButton_buildSupportRaySet;
-    QRadioButton *radioButton_deselect_origin;
-    QHBoxLayout *horizontalLayout_7;
-    QPushButton *pushButton_buildSupportLayerSet;
-    QCheckBox *checkBox_verifyByMarching;
-    QRadioButton *radioButton_showRayOrSurface;
-    QFrame *line_3;
-    QHBoxLayout *horizontalLayout_3;
-    QRadioButton *radioButton_tightSupportLayerDraw;
-    QCheckBox *boxDeselect;
-    QFrame *line_2;
-    QPushButton *pushButton_buildSupportToolpathSet;
-    QPushButton *pushButton_output_Toolpath;
+    QPushButton *pushButton_generate_support_structure;
+    QPushButton *pushButton_slimmedSupportGeneration;
+    QHBoxLayout *horizontalLayout_9;
+    QLabel *label_16;
+    QDoubleSpinBox *doubleSpinBox_toolPathWidth;
+    QLabel *label_17;
+    QDoubleSpinBox *doubleSpinBox_toolPathDistance;
+    QPushButton *pushButton_toolPathGeneration;
+    QPushButton *pushButton_Tp4Ur5e;
     QTreeView *treeView;
-    QPushButton *pushButton_TestFunc;
-    QPushButton *pushButton_readRobot_model;
+    QHBoxLayout *horizontalLayout_12;
+    QCheckBox *boxDeselect;
     QPushButton *pushButton_clearAll;
     QMenuBar *menuBar;
     QMenu *menuFile;
@@ -136,7 +145,7 @@ public:
     {
         if (MainWindow->objectName().isEmpty())
             MainWindow->setObjectName(QString::fromUtf8("MainWindow"));
-        MainWindow->resize(1331, 1070);
+        MainWindow->resize(1290, 991);
         MainWindow->setMinimumSize(QSize(0, 0));
         QFont font;
         font.setBold(true);
@@ -330,8 +339,8 @@ public:
         sizePolicy.setVerticalStretch(0);
         sizePolicy.setHeightForWidth(dockWidget->sizePolicy().hasHeightForWidth());
         dockWidget->setSizePolicy(sizePolicy);
-        dockWidget->setMinimumSize(QSize(401, 984));
-        dockWidget->setMaximumSize(QSize(401, 524287));
+        dockWidget->setMinimumSize(QSize(350, 900));
+        dockWidget->setMaximumSize(QSize(350, 900));
         dockWidgetContents = new QWidget();
         dockWidgetContents->setObjectName(QString::fromUtf8("dockWidgetContents"));
         dockWidgetContents->setLayoutDirection(Qt::LeftToRight);
@@ -339,34 +348,18 @@ public:
         verticalLayout->setSpacing(6);
         verticalLayout->setContentsMargins(11, 11, 11, 11);
         verticalLayout->setObjectName(QString::fromUtf8("verticalLayout"));
-        label_MANY_3DP_CNC_CAM = new QLabel(dockWidgetContents);
-        label_MANY_3DP_CNC_CAM->setObjectName(QString::fromUtf8("label_MANY_3DP_CNC_CAM"));
+        label_13 = new QLabel(dockWidgetContents);
+        label_13->setObjectName(QString::fromUtf8("label_13"));
         QFont font1;
         font1.setPointSize(10);
-        label_MANY_3DP_CNC_CAM->setFont(font1);
+        label_13->setFont(font1);
 
-        verticalLayout->addWidget(label_MANY_3DP_CNC_CAM);
+        verticalLayout->addWidget(label_13);
 
-        horizontalLayout_9 = new QHBoxLayout();
-        horizontalLayout_9->setSpacing(6);
-        horizontalLayout_9->setObjectName(QString::fromUtf8("horizontalLayout_9"));
-        label_PosNorFile = new QLabel(dockWidgetContents);
-        label_PosNorFile->setObjectName(QString::fromUtf8("label_PosNorFile"));
-        QFont font2;
-        font2.setPointSize(8);
-        font2.setBold(true);
-        font2.setWeight(75);
-        label_PosNorFile->setFont(font2);
+        label_2 = new QLabel(dockWidgetContents);
+        label_2->setObjectName(QString::fromUtf8("label_2"));
 
-        horizontalLayout_9->addWidget(label_PosNorFile);
-
-        lineEdit_SorceDataDir = new QLineEdit(dockWidgetContents);
-        lineEdit_SorceDataDir->setObjectName(QString::fromUtf8("lineEdit_SorceDataDir"));
-
-        horizontalLayout_9->addWidget(lineEdit_SorceDataDir);
-
-
-        verticalLayout->addLayout(horizontalLayout_9);
+        verticalLayout->addWidget(label_2);
 
         line = new QFrame(dockWidgetContents);
         line->setObjectName(QString::fromUtf8("line"));
@@ -375,38 +368,70 @@ public:
 
         verticalLayout->addWidget(line);
 
-        label_5 = new QLabel(dockWidgetContents);
-        label_5->setObjectName(QString::fromUtf8("label_5"));
-        label_5->setFont(font);
-        label_5->setStyleSheet(QString::fromUtf8("color: rgb(0, 0, 255);"));
-
-        verticalLayout->addWidget(label_5);
-
-        pushButton_Comp_initialGuess_envelopSupport = new QPushButton(dockWidgetContents);
-        pushButton_Comp_initialGuess_envelopSupport->setObjectName(QString::fromUtf8("pushButton_Comp_initialGuess_envelopSupport"));
-
-        verticalLayout->addWidget(pushButton_Comp_initialGuess_envelopSupport);
-
-        line_6 = new QFrame(dockWidgetContents);
-        line_6->setObjectName(QString::fromUtf8("line_6"));
-        line_6->setFrameShape(QFrame::HLine);
-        line_6->setFrameShadow(QFrame::Sunken);
-
-        verticalLayout->addWidget(line_6);
-
-        line_7 = new QFrame(dockWidgetContents);
-        line_7->setObjectName(QString::fromUtf8("line_7"));
-        line_7->setFrameShape(QFrame::HLine);
-        line_7->setFrameShadow(QFrame::Sunken);
-
-        verticalLayout->addWidget(line_7);
-
         label = new QLabel(dockWidgetContents);
         label->setObjectName(QString::fromUtf8("label"));
         label->setFont(font);
-        label->setStyleSheet(QString::fromUtf8("color: rgb(0, 0, 255);"));
+        label->setStyleSheet(QString::fromUtf8(""));
 
         verticalLayout->addWidget(label);
+
+        horizontalLayout_16 = new QHBoxLayout();
+        horizontalLayout_16->setSpacing(6);
+        horizontalLayout_16->setObjectName(QString::fromUtf8("horizontalLayout_16"));
+        label_PosNorFile = new QLabel(dockWidgetContents);
+        label_PosNorFile->setObjectName(QString::fromUtf8("label_PosNorFile"));
+        QFont font2;
+        font2.setPointSize(8);
+        font2.setBold(false);
+        font2.setWeight(50);
+        label_PosNorFile->setFont(font2);
+
+        horizontalLayout_16->addWidget(label_PosNorFile);
+
+        lineEdit_SorceDataDir = new QLineEdit(dockWidgetContents);
+        lineEdit_SorceDataDir->setObjectName(QString::fromUtf8("lineEdit_SorceDataDir"));
+
+        horizontalLayout_16->addWidget(lineEdit_SorceDataDir);
+
+        pushButton_readData = new QPushButton(dockWidgetContents);
+        pushButton_readData->setObjectName(QString::fromUtf8("pushButton_readData"));
+        QFont font3;
+        font3.setFamily(QString::fromUtf8("3ds"));
+        font3.setPointSize(9);
+        font3.setBold(true);
+        font3.setItalic(false);
+        font3.setUnderline(false);
+        font3.setWeight(75);
+        pushButton_readData->setFont(font3);
+        pushButton_readData->setStyleSheet(QString::fromUtf8(""));
+
+        horizontalLayout_16->addWidget(pushButton_readData);
+
+
+        verticalLayout->addLayout(horizontalLayout_16);
+
+        horizontalLayout_10 = new QHBoxLayout();
+        horizontalLayout_10->setSpacing(6);
+        horizontalLayout_10->setObjectName(QString::fromUtf8("horizontalLayout_10"));
+        label_5 = new QLabel(dockWidgetContents);
+        label_5->setObjectName(QString::fromUtf8("label_5"));
+
+        horizontalLayout_10->addWidget(label_5);
+
+        pushButton_model_positionUpdate = new QPushButton(dockWidgetContents);
+        pushButton_model_positionUpdate->setObjectName(QString::fromUtf8("pushButton_model_positionUpdate"));
+        pushButton_model_positionUpdate->setMaximumSize(QSize(64, 16777215));
+        QFont font4;
+        font4.setPointSize(8);
+        font4.setBold(true);
+        font4.setWeight(75);
+        pushButton_model_positionUpdate->setFont(font4);
+        pushButton_model_positionUpdate->setStyleSheet(QString::fromUtf8(""));
+
+        horizontalLayout_10->addWidget(pushButton_model_positionUpdate);
+
+
+        verticalLayout->addLayout(horizontalLayout_10);
 
         horizontalLayout_11 = new QHBoxLayout();
         horizontalLayout_11->setSpacing(6);
@@ -414,16 +439,13 @@ public:
         label_Xmove = new QLabel(dockWidgetContents);
         label_Xmove->setObjectName(QString::fromUtf8("label_Xmove"));
         label_Xmove->setMaximumSize(QSize(16777215, 16777215));
-        QFont font3;
-        font3.setPointSize(8);
-        label_Xmove->setFont(font3);
+        label_Xmove->setFont(font2);
 
         horizontalLayout_11->addWidget(label_Xmove);
 
         doubleSpinBox_Xmove = new QDoubleSpinBox(dockWidgetContents);
         doubleSpinBox_Xmove->setObjectName(QString::fromUtf8("doubleSpinBox_Xmove"));
-        doubleSpinBox_Xmove->setMaximumSize(QSize(62, 16777215));
-        doubleSpinBox_Xmove->setFont(font3);
+        doubleSpinBox_Xmove->setFont(font2);
         doubleSpinBox_Xmove->setMinimum(-150.000000000000000);
         doubleSpinBox_Xmove->setMaximum(150.000000000000000);
         doubleSpinBox_Xmove->setValue(0.000000000000000);
@@ -433,14 +455,13 @@ public:
         label_Ymove = new QLabel(dockWidgetContents);
         label_Ymove->setObjectName(QString::fromUtf8("label_Ymove"));
         label_Ymove->setMaximumSize(QSize(16777215, 16777215));
-        label_Ymove->setFont(font3);
+        label_Ymove->setFont(font2);
 
         horizontalLayout_11->addWidget(label_Ymove);
 
         doubleSpinBox_Ymove = new QDoubleSpinBox(dockWidgetContents);
         doubleSpinBox_Ymove->setObjectName(QString::fromUtf8("doubleSpinBox_Ymove"));
-        doubleSpinBox_Ymove->setMaximumSize(QSize(62, 16777215));
-        doubleSpinBox_Ymove->setFont(font3);
+        doubleSpinBox_Ymove->setFont(font2);
         doubleSpinBox_Ymove->setMinimum(-150.000000000000000);
         doubleSpinBox_Ymove->setMaximum(150.000000000000000);
         doubleSpinBox_Ymove->setValue(0.000000000000000);
@@ -450,213 +471,274 @@ public:
         label_Zmove = new QLabel(dockWidgetContents);
         label_Zmove->setObjectName(QString::fromUtf8("label_Zmove"));
         label_Zmove->setMaximumSize(QSize(16777215, 16777215));
-        label_Zmove->setFont(font3);
+        label_Zmove->setFont(font2);
 
         horizontalLayout_11->addWidget(label_Zmove);
 
         doubleSpinBox_Zmove = new QDoubleSpinBox(dockWidgetContents);
         doubleSpinBox_Zmove->setObjectName(QString::fromUtf8("doubleSpinBox_Zmove"));
-        doubleSpinBox_Zmove->setMaximumSize(QSize(62, 16777215));
-        doubleSpinBox_Zmove->setFont(font3);
-        doubleSpinBox_Zmove->setMinimum(-99.989999999999995);
+        doubleSpinBox_Zmove->setFont(font2);
+        doubleSpinBox_Zmove->setMinimum(-150.000000000000000);
+        doubleSpinBox_Zmove->setMaximum(150.000000000000000);
         doubleSpinBox_Zmove->setValue(0.000000000000000);
 
         horizontalLayout_11->addWidget(doubleSpinBox_Zmove);
 
-        pushButton_readGcodeSourceData = new QPushButton(dockWidgetContents);
-        pushButton_readGcodeSourceData->setObjectName(QString::fromUtf8("pushButton_readGcodeSourceData"));
-        pushButton_readGcodeSourceData->setMinimumSize(QSize(90, 0));
-        QFont font4;
-        font4.setPointSize(10);
-        font4.setBold(true);
-        font4.setItalic(false);
-        font4.setUnderline(true);
-        font4.setWeight(75);
-        pushButton_readGcodeSourceData->setFont(font4);
-        pushButton_readGcodeSourceData->setStyleSheet(QString::fromUtf8("color: rgb(0, 80, 0);"));
-
-        horizontalLayout_11->addWidget(pushButton_readGcodeSourceData);
-
 
         verticalLayout->addLayout(horizontalLayout_11);
-
-        line_4 = new QFrame(dockWidgetContents);
-        line_4->setObjectName(QString::fromUtf8("line_4"));
-        line_4->setFrameShape(QFrame::HLine);
-        line_4->setFrameShadow(QFrame::Sunken);
-
-        verticalLayout->addWidget(line_4);
-
-        label_3 = new QLabel(dockWidgetContents);
-        label_3->setObjectName(QString::fromUtf8("label_3"));
-        label_3->setFont(font);
-        label_3->setStyleSheet(QString::fromUtf8("color: rgb(0, 0, 255);"));
-
-        verticalLayout->addWidget(label_3);
 
         horizontalLayout_2 = new QHBoxLayout();
         horizontalLayout_2->setSpacing(6);
         horizontalLayout_2->setObjectName(QString::fromUtf8("horizontalLayout_2"));
-        label_2 = new QLabel(dockWidgetContents);
-        label_2->setObjectName(QString::fromUtf8("label_2"));
+        label_3 = new QLabel(dockWidgetContents);
+        label_3->setObjectName(QString::fromUtf8("label_3"));
+        QFont font5;
+        font5.setPointSize(8);
+        font5.setBold(false);
+        font5.setWeight(50);
+        font5.setKerning(false);
+        label_3->setFont(font5);
 
-        horizontalLayout_2->addWidget(label_2);
+        horizontalLayout_2->addWidget(label_3);
 
-        spinBox_ShowLayerIndex = new QSpinBox(dockWidgetContents);
-        spinBox_ShowLayerIndex->setObjectName(QString::fromUtf8("spinBox_ShowLayerIndex"));
-        spinBox_ShowLayerIndex->setMinimumSize(QSize(1, 0));
+        doubleSpinBox_XRot = new QDoubleSpinBox(dockWidgetContents);
+        doubleSpinBox_XRot->setObjectName(QString::fromUtf8("doubleSpinBox_XRot"));
+        doubleSpinBox_XRot->setFont(font2);
+        doubleSpinBox_XRot->setMinimum(-180.000000000000000);
+        doubleSpinBox_XRot->setMaximum(180.000000000000000);
 
-        horizontalLayout_2->addWidget(spinBox_ShowLayerIndex);
-
-        checkBox_EachLayerSwitch = new QCheckBox(dockWidgetContents);
-        checkBox_EachLayerSwitch->setObjectName(QString::fromUtf8("checkBox_EachLayerSwitch"));
-
-        horizontalLayout_2->addWidget(checkBox_EachLayerSwitch);
-
-        pushButton_ShowAllLayers = new QPushButton(dockWidgetContents);
-        pushButton_ShowAllLayers->setObjectName(QString::fromUtf8("pushButton_ShowAllLayers"));
-
-        horizontalLayout_2->addWidget(pushButton_ShowAllLayers);
+        horizontalLayout_2->addWidget(doubleSpinBox_XRot);
 
         label_4 = new QLabel(dockWidgetContents);
         label_4->setObjectName(QString::fromUtf8("label_4"));
+        label_4->setFont(font2);
 
         horizontalLayout_2->addWidget(label_4);
+
+        doubleSpinBox_YRot = new QDoubleSpinBox(dockWidgetContents);
+        doubleSpinBox_YRot->setObjectName(QString::fromUtf8("doubleSpinBox_YRot"));
+        doubleSpinBox_YRot->setFont(font2);
+        doubleSpinBox_YRot->setMinimum(-180.000000000000000);
+        doubleSpinBox_YRot->setMaximum(180.000000000000000);
+
+        horizontalLayout_2->addWidget(doubleSpinBox_YRot);
+
+        label_18 = new QLabel(dockWidgetContents);
+        label_18->setObjectName(QString::fromUtf8("label_18"));
+        label_18->setFont(font2);
+
+        horizontalLayout_2->addWidget(label_18);
+
+        doubleSpinBox_ZRot = new QDoubleSpinBox(dockWidgetContents);
+        doubleSpinBox_ZRot->setObjectName(QString::fromUtf8("doubleSpinBox_ZRot"));
+        doubleSpinBox_ZRot->setFont(font2);
+        doubleSpinBox_ZRot->setMinimum(-180.000000000000000);
+        doubleSpinBox_ZRot->setMaximum(180.000000000000000);
+
+        horizontalLayout_2->addWidget(doubleSpinBox_ZRot);
 
 
         verticalLayout->addLayout(horizontalLayout_2);
 
-        horizontalLayout_4 = new QHBoxLayout();
-        horizontalLayout_4->setSpacing(6);
-        horizontalLayout_4->setObjectName(QString::fromUtf8("horizontalLayout_4"));
-        horizontalLayout_5 = new QHBoxLayout();
-        horizontalLayout_5->setSpacing(6);
-        horizontalLayout_5->setObjectName(QString::fromUtf8("horizontalLayout_5"));
-        checkBox_onlyShowOnetype_layers = new QCheckBox(dockWidgetContents);
-        checkBox_onlyShowOnetype_layers->setObjectName(QString::fromUtf8("checkBox_onlyShowOnetype_layers"));
-        checkBox_onlyShowOnetype_layers->setFont(font);
-
-        horizontalLayout_5->addWidget(checkBox_onlyShowOnetype_layers);
-
-        radioButton_initialORsupport = new QRadioButton(dockWidgetContents);
-        radioButton_initialORsupport->setObjectName(QString::fromUtf8("radioButton_initialORsupport"));
-        QFont font5;
-        font5.setBold(false);
-        font5.setWeight(50);
-        radioButton_initialORsupport->setFont(font5);
-        radioButton_initialORsupport->setAutoRepeat(false);
-        radioButton_initialORsupport->setAutoExclusive(false);
-
-        horizontalLayout_5->addWidget(radioButton_initialORsupport);
-
-
-        horizontalLayout_4->addLayout(horizontalLayout_5);
-
-        checkBox_draw_LargeISOlayers = new QCheckBox(dockWidgetContents);
-        checkBox_draw_LargeISOlayers->setObjectName(QString::fromUtf8("checkBox_draw_LargeISOlayers"));
-        checkBox_draw_LargeISOlayers->setEnabled(false);
-        checkBox_draw_LargeISOlayers->setFont(font5);
-
-        horizontalLayout_4->addWidget(checkBox_draw_LargeISOlayers);
-
-
-        verticalLayout->addLayout(horizontalLayout_4);
-
-        line_5 = new QFrame(dockWidgetContents);
-        line_5->setObjectName(QString::fromUtf8("line_5"));
-        line_5->setFrameShape(QFrame::HLine);
-        line_5->setFrameShadow(QFrame::Sunken);
-
-        verticalLayout->addWidget(line_5);
-
         horizontalLayout_6 = new QHBoxLayout();
         horizontalLayout_6->setSpacing(6);
         horizontalLayout_6->setObjectName(QString::fromUtf8("horizontalLayout_6"));
-        pushButton_buildSupportRaySet = new QPushButton(dockWidgetContents);
-        pushButton_buildSupportRaySet->setObjectName(QString::fromUtf8("pushButton_buildSupportRaySet"));
-        pushButton_buildSupportRaySet->setEnabled(false);
+        label_7 = new QLabel(dockWidgetContents);
+        label_7->setObjectName(QString::fromUtf8("label_7"));
+        label_7->setFont(font2);
 
-        horizontalLayout_6->addWidget(pushButton_buildSupportRaySet);
+        horizontalLayout_6->addWidget(label_7);
 
-        radioButton_deselect_origin = new QRadioButton(dockWidgetContents);
-        radioButton_deselect_origin->setObjectName(QString::fromUtf8("radioButton_deselect_origin"));
-        radioButton_deselect_origin->setEnabled(false);
-        radioButton_deselect_origin->setAutoExclusive(false);
+        doubleSpinBox_offset_dist = new QDoubleSpinBox(dockWidgetContents);
+        doubleSpinBox_offset_dist->setObjectName(QString::fromUtf8("doubleSpinBox_offset_dist"));
+        doubleSpinBox_offset_dist->setFont(font2);
 
-        horizontalLayout_6->addWidget(radioButton_deselect_origin);
+        horizontalLayout_6->addWidget(doubleSpinBox_offset_dist);
+
+        horizontalSpacer = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
+
+        horizontalLayout_6->addItem(horizontalSpacer);
+
+        pushButton_buildEnvelopeCH = new QPushButton(dockWidgetContents);
+        pushButton_buildEnvelopeCH->setObjectName(QString::fromUtf8("pushButton_buildEnvelopeCH"));
+        pushButton_buildEnvelopeCH->setFont(font4);
+
+        horizontalLayout_6->addWidget(pushButton_buildEnvelopeCH);
 
 
         verticalLayout->addLayout(horizontalLayout_6);
 
+        horizontalLayout_5 = new QHBoxLayout();
+        horizontalLayout_5->setSpacing(6);
+        horizontalLayout_5->setObjectName(QString::fromUtf8("horizontalLayout_5"));
+        pushButton_remeshCH = new QPushButton(dockWidgetContents);
+        pushButton_remeshCH->setObjectName(QString::fromUtf8("pushButton_remeshCH"));
+        QFont font6;
+        font6.setPointSize(8);
+        pushButton_remeshCH->setFont(font6);
+
+        horizontalLayout_5->addWidget(pushButton_remeshCH);
+
+        pushButton_generateSupportSpace = new QPushButton(dockWidgetContents);
+        pushButton_generateSupportSpace->setObjectName(QString::fromUtf8("pushButton_generateSupportSpace"));
+        pushButton_generateSupportSpace->setEnabled(false);
+        pushButton_generateSupportSpace->setFont(font6);
+
+        horizontalLayout_5->addWidget(pushButton_generateSupportSpace);
+
+
+        verticalLayout->addLayout(horizontalLayout_5);
+
+        pushButton_readSupportSpace = new QPushButton(dockWidgetContents);
+        pushButton_readSupportSpace->setObjectName(QString::fromUtf8("pushButton_readSupportSpace"));
+        pushButton_readSupportSpace->setEnabled(false);
+        QFont font7;
+        font7.setFamily(QString::fromUtf8("3ds"));
+        font7.setBold(true);
+        font7.setWeight(75);
+        pushButton_readSupportSpace->setFont(font7);
+        pushButton_readSupportSpace->setStyleSheet(QString::fromUtf8("color: rgb(0,0, 255);"));
+
+        verticalLayout->addWidget(pushButton_readSupportSpace);
+
+        pushButton_transferField_2_SupportSpace = new QPushButton(dockWidgetContents);
+        pushButton_transferField_2_SupportSpace->setObjectName(QString::fromUtf8("pushButton_transferField_2_SupportSpace"));
+        pushButton_transferField_2_SupportSpace->setFont(font7);
+        pushButton_transferField_2_SupportSpace->setStyleSheet(QString::fromUtf8("color: rgb(0,0, 255);"));
+
+        verticalLayout->addWidget(pushButton_transferField_2_SupportSpace);
+
         horizontalLayout_7 = new QHBoxLayout();
         horizontalLayout_7->setSpacing(6);
         horizontalLayout_7->setObjectName(QString::fromUtf8("horizontalLayout_7"));
-        pushButton_buildSupportLayerSet = new QPushButton(dockWidgetContents);
-        pushButton_buildSupportLayerSet->setObjectName(QString::fromUtf8("pushButton_buildSupportLayerSet"));
-        pushButton_buildSupportLayerSet->setEnabled(false);
+        pushButton_generateCompatibleLayers = new QPushButton(dockWidgetContents);
+        pushButton_generateCompatibleLayers->setObjectName(QString::fromUtf8("pushButton_generateCompatibleLayers"));
+        pushButton_generateCompatibleLayers->setFont(font7);
+        pushButton_generateCompatibleLayers->setStyleSheet(QString::fromUtf8("color: rgb(0,0, 255);"));
 
-        horizontalLayout_7->addWidget(pushButton_buildSupportLayerSet);
+        horizontalLayout_7->addWidget(pushButton_generateCompatibleLayers);
 
-        checkBox_verifyByMarching = new QCheckBox(dockWidgetContents);
-        checkBox_verifyByMarching->setObjectName(QString::fromUtf8("checkBox_verifyByMarching"));
-        checkBox_verifyByMarching->setMaximumSize(QSize(150, 16777215));
-        checkBox_verifyByMarching->setChecked(false);
+        label_14 = new QLabel(dockWidgetContents);
+        label_14->setObjectName(QString::fromUtf8("label_14"));
+        label_14->setFont(font2);
 
-        horizontalLayout_7->addWidget(checkBox_verifyByMarching);
+        horizontalLayout_7->addWidget(label_14);
+
+        spinBox_isoLayerNumber = new QSpinBox(dockWidgetContents);
+        spinBox_isoLayerNumber->setObjectName(QString::fromUtf8("spinBox_isoLayerNumber"));
+        spinBox_isoLayerNumber->setFont(font2);
+        spinBox_isoLayerNumber->setMaximum(999);
+
+        horizontalLayout_7->addWidget(spinBox_isoLayerNumber);
 
 
         verticalLayout->addLayout(horizontalLayout_7);
 
-        radioButton_showRayOrSurface = new QRadioButton(dockWidgetContents);
-        radioButton_showRayOrSurface->setObjectName(QString::fromUtf8("radioButton_showRayOrSurface"));
-        radioButton_showRayOrSurface->setEnabled(true);
-        radioButton_showRayOrSurface->setFont(font5);
-        radioButton_showRayOrSurface->setAutoExclusive(false);
+        horizontalLayout_8 = new QHBoxLayout();
+        horizontalLayout_8->setSpacing(6);
+        horizontalLayout_8->setObjectName(QString::fromUtf8("horizontalLayout_8"));
+        label_15 = new QLabel(dockWidgetContents);
+        label_15->setObjectName(QString::fromUtf8("label_15"));
+        label_15->setFont(font2);
 
-        verticalLayout->addWidget(radioButton_showRayOrSurface);
+        horizontalLayout_8->addWidget(label_15);
 
-        line_3 = new QFrame(dockWidgetContents);
-        line_3->setObjectName(QString::fromUtf8("line_3"));
-        line_3->setFrameShape(QFrame::HLine);
-        line_3->setFrameShadow(QFrame::Sunken);
+        spinBox_ShowLayerIndex = new QSpinBox(dockWidgetContents);
+        spinBox_ShowLayerIndex->setObjectName(QString::fromUtf8("spinBox_ShowLayerIndex"));
+        spinBox_ShowLayerIndex->setFont(font2);
+        spinBox_ShowLayerIndex->setMaximum(999);
 
-        verticalLayout->addWidget(line_3);
+        horizontalLayout_8->addWidget(spinBox_ShowLayerIndex);
 
-        horizontalLayout_3 = new QHBoxLayout();
-        horizontalLayout_3->setSpacing(6);
-        horizontalLayout_3->setObjectName(QString::fromUtf8("horizontalLayout_3"));
-        radioButton_tightSupportLayerDraw = new QRadioButton(dockWidgetContents);
-        radioButton_tightSupportLayerDraw->setObjectName(QString::fromUtf8("radioButton_tightSupportLayerDraw"));
-        radioButton_tightSupportLayerDraw->setEnabled(false);
-        radioButton_tightSupportLayerDraw->setFont(font5);
+        checkBox_EachLayerSwitch = new QCheckBox(dockWidgetContents);
+        checkBox_EachLayerSwitch->setObjectName(QString::fromUtf8("checkBox_EachLayerSwitch"));
+        checkBox_EachLayerSwitch->setFont(font2);
 
-        horizontalLayout_3->addWidget(radioButton_tightSupportLayerDraw);
+        horizontalLayout_8->addWidget(checkBox_EachLayerSwitch);
 
-        boxDeselect = new QCheckBox(dockWidgetContents);
-        boxDeselect->setObjectName(QString::fromUtf8("boxDeselect"));
-        boxDeselect->setMaximumSize(QSize(150, 16777215));
+        radioButton_compatibleLayer = new QRadioButton(dockWidgetContents);
+        radioButton_compatibleLayer->setObjectName(QString::fromUtf8("radioButton_compatibleLayer"));
+        radioButton_compatibleLayer->setEnabled(false);
+        radioButton_compatibleLayer->setFont(font2);
 
-        horizontalLayout_3->addWidget(boxDeselect);
+        horizontalLayout_8->addWidget(radioButton_compatibleLayer);
+
+        pushButton_ShowAllLayers = new QPushButton(dockWidgetContents);
+        pushButton_ShowAllLayers->setObjectName(QString::fromUtf8("pushButton_ShowAllLayers"));
+        pushButton_ShowAllLayers->setFont(font2);
+
+        horizontalLayout_8->addWidget(pushButton_ShowAllLayers);
 
 
-        verticalLayout->addLayout(horizontalLayout_3);
+        verticalLayout->addLayout(horizontalLayout_8);
 
-        line_2 = new QFrame(dockWidgetContents);
-        line_2->setObjectName(QString::fromUtf8("line_2"));
-        line_2->setFrameShape(QFrame::HLine);
-        line_2->setFrameShadow(QFrame::Sunken);
+        pushButton_generate_support_structure = new QPushButton(dockWidgetContents);
+        pushButton_generate_support_structure->setObjectName(QString::fromUtf8("pushButton_generate_support_structure"));
+        pushButton_generate_support_structure->setEnabled(false);
+        pushButton_generate_support_structure->setFont(font7);
+        pushButton_generate_support_structure->setStyleSheet(QString::fromUtf8("color: rgb(0,192, 64);"));
 
-        verticalLayout->addWidget(line_2);
+        verticalLayout->addWidget(pushButton_generate_support_structure);
 
-        pushButton_buildSupportToolpathSet = new QPushButton(dockWidgetContents);
-        pushButton_buildSupportToolpathSet->setObjectName(QString::fromUtf8("pushButton_buildSupportToolpathSet"));
+        pushButton_slimmedSupportGeneration = new QPushButton(dockWidgetContents);
+        pushButton_slimmedSupportGeneration->setObjectName(QString::fromUtf8("pushButton_slimmedSupportGeneration"));
+        pushButton_slimmedSupportGeneration->setFont(font7);
+        pushButton_slimmedSupportGeneration->setStyleSheet(QString::fromUtf8("color: rgb(0,192, 64);"));
 
-        verticalLayout->addWidget(pushButton_buildSupportToolpathSet);
+        verticalLayout->addWidget(pushButton_slimmedSupportGeneration);
 
-        pushButton_output_Toolpath = new QPushButton(dockWidgetContents);
-        pushButton_output_Toolpath->setObjectName(QString::fromUtf8("pushButton_output_Toolpath"));
+        horizontalLayout_9 = new QHBoxLayout();
+        horizontalLayout_9->setSpacing(6);
+        horizontalLayout_9->setObjectName(QString::fromUtf8("horizontalLayout_9"));
+        label_16 = new QLabel(dockWidgetContents);
+        label_16->setObjectName(QString::fromUtf8("label_16"));
+        label_16->setFont(font2);
 
-        verticalLayout->addWidget(pushButton_output_Toolpath);
+        horizontalLayout_9->addWidget(label_16);
+
+        doubleSpinBox_toolPathWidth = new QDoubleSpinBox(dockWidgetContents);
+        doubleSpinBox_toolPathWidth->setObjectName(QString::fromUtf8("doubleSpinBox_toolPathWidth"));
+        doubleSpinBox_toolPathWidth->setFont(font2);
+        doubleSpinBox_toolPathWidth->setSingleStep(0.100000000000000);
+        doubleSpinBox_toolPathWidth->setValue(0.600000000000000);
+
+        horizontalLayout_9->addWidget(doubleSpinBox_toolPathWidth);
+
+        label_17 = new QLabel(dockWidgetContents);
+        label_17->setObjectName(QString::fromUtf8("label_17"));
+        label_17->setFont(font2);
+
+        horizontalLayout_9->addWidget(label_17);
+
+        doubleSpinBox_toolPathDistance = new QDoubleSpinBox(dockWidgetContents);
+        doubleSpinBox_toolPathDistance->setObjectName(QString::fromUtf8("doubleSpinBox_toolPathDistance"));
+        doubleSpinBox_toolPathDistance->setFont(font2);
+        doubleSpinBox_toolPathDistance->setSingleStep(0.100000000000000);
+        doubleSpinBox_toolPathDistance->setValue(1.000000000000000);
+
+        horizontalLayout_9->addWidget(doubleSpinBox_toolPathDistance);
+
+
+        verticalLayout->addLayout(horizontalLayout_9);
+
+        pushButton_toolPathGeneration = new QPushButton(dockWidgetContents);
+        pushButton_toolPathGeneration->setObjectName(QString::fromUtf8("pushButton_toolPathGeneration"));
+        pushButton_toolPathGeneration->setFont(font7);
+        pushButton_toolPathGeneration->setStyleSheet(QString::fromUtf8("color: rgb(0,192, 64);"));
+
+        verticalLayout->addWidget(pushButton_toolPathGeneration);
+
+        pushButton_Tp4Ur5e = new QPushButton(dockWidgetContents);
+        pushButton_Tp4Ur5e->setObjectName(QString::fromUtf8("pushButton_Tp4Ur5e"));
+        QFont font8;
+        font8.setFamily(QString::fromUtf8("3ds"));
+        font8.setPointSize(9);
+        font8.setBold(true);
+        font8.setWeight(75);
+        pushButton_Tp4Ur5e->setFont(font8);
+        pushButton_Tp4Ur5e->setStyleSheet(QString::fromUtf8("color: rgb(0,192, 64);"));
+
+        verticalLayout->addWidget(pushButton_Tp4Ur5e);
 
         treeView = new QTreeView(dockWidgetContents);
         treeView->setObjectName(QString::fromUtf8("treeView"));
@@ -667,26 +749,27 @@ public:
 
         verticalLayout->addWidget(treeView);
 
-        pushButton_TestFunc = new QPushButton(dockWidgetContents);
-        pushButton_TestFunc->setObjectName(QString::fromUtf8("pushButton_TestFunc"));
+        horizontalLayout_12 = new QHBoxLayout();
+        horizontalLayout_12->setSpacing(6);
+        horizontalLayout_12->setObjectName(QString::fromUtf8("horizontalLayout_12"));
+        boxDeselect = new QCheckBox(dockWidgetContents);
+        boxDeselect->setObjectName(QString::fromUtf8("boxDeselect"));
 
-        verticalLayout->addWidget(pushButton_TestFunc);
-
-        pushButton_readRobot_model = new QPushButton(dockWidgetContents);
-        pushButton_readRobot_model->setObjectName(QString::fromUtf8("pushButton_readRobot_model"));
-
-        verticalLayout->addWidget(pushButton_readRobot_model);
+        horizontalLayout_12->addWidget(boxDeselect);
 
         pushButton_clearAll = new QPushButton(dockWidgetContents);
         pushButton_clearAll->setObjectName(QString::fromUtf8("pushButton_clearAll"));
 
-        verticalLayout->addWidget(pushButton_clearAll);
+        horizontalLayout_12->addWidget(pushButton_clearAll);
+
+
+        verticalLayout->addLayout(horizontalLayout_12);
 
         dockWidget->setWidget(dockWidgetContents);
         MainWindow->addDockWidget(static_cast<Qt::DockWidgetArea>(2), dockWidget);
         menuBar = new QMenuBar(MainWindow);
         menuBar->setObjectName(QString::fromUtf8("menuBar"));
-        menuBar->setGeometry(QRect(0, 0, 1331, 26));
+        menuBar->setGeometry(QRect(0, 0, 1290, 26));
         menuBar->setLayoutDirection(Qt::LeftToRight);
         menuFile = new QMenu(menuBar);
         menuFile->setObjectName(QString::fromUtf8("menuFile"));
@@ -805,36 +888,40 @@ public:
         actionExport_to_Abaqus_model->setText(QApplication::translate("MainWindow", "Export to Abaqus model", nullptr));
         navigationToolBar->setWindowTitle(QApplication::translate("MainWindow", "navigationToolBar", nullptr));
         selectionToolBar->setWindowTitle(QApplication::translate("MainWindow", "selectionToolBar", nullptr));
-        label_MANY_3DP_CNC_CAM->setText(QApplication::translate("MainWindow", "Support Optimization", nullptr));
-        label_PosNorFile->setText(QApplication::translate("MainWindow", "File Dir:", nullptr));
-        lineEdit_SorceDataDir->setText(QApplication::translate("MainWindow", "yoga_cut", nullptr));
-        label_5->setText(QApplication::translate("MainWindow", "Initial Guess of Support Envelope", nullptr));
-        pushButton_Comp_initialGuess_envelopSupport->setText(QApplication::translate("MainWindow", "Compute conservative Convex Hull", nullptr));
-        label->setText(QApplication::translate("MainWindow", "Input Layers", nullptr));
-        label_Xmove->setText(QApplication::translate("MainWindow", "X", nullptr));
-        label_Ymove->setText(QApplication::translate("MainWindow", "Y", nullptr));
-        label_Zmove->setText(QApplication::translate("MainWindow", "Z", nullptr));
-        pushButton_readGcodeSourceData->setText(QApplication::translate("MainWindow", "1.Read Data", nullptr));
-        label_3->setText(QApplication::translate("MainWindow", "Draw inputed Layers", nullptr));
-        label_2->setText(QApplication::translate("MainWindow", "Show:", nullptr));
-        checkBox_EachLayerSwitch->setText(QApplication::translate("MainWindow", "single", nullptr));
-        pushButton_ShowAllLayers->setText(QApplication::translate("MainWindow", "Show ALL", nullptr));
-        label_4->setText(QApplication::translate("MainWindow", "layer", nullptr));
-        checkBox_onlyShowOnetype_layers->setText(QApplication::translate("MainWindow", "Only ", nullptr));
-        radioButton_initialORsupport->setText(QApplication::translate("MainWindow", "initial/support", nullptr));
-        checkBox_draw_LargeISOlayers->setText(QApplication::translate("MainWindow", "iso-layer", nullptr));
-        pushButton_buildSupportRaySet->setText(QApplication::translate("MainWindow", "Build Support RAY", nullptr));
-        radioButton_deselect_origin->setText(QApplication::translate("MainWindow", "de-select origin", nullptr));
-        pushButton_buildSupportLayerSet->setText(QApplication::translate("MainWindow", "Build Support Layer", nullptr));
-        checkBox_verifyByMarching->setText(QApplication::translate("MainWindow", "Marching cube", nullptr));
-        radioButton_showRayOrSurface->setText(QApplication::translate("MainWindow", " ray/surface of MC (support Convex hull)", nullptr));
-        radioButton_tightSupportLayerDraw->setText(QApplication::translate("MainWindow", "tight support show", nullptr));
-        boxDeselect->setText(QApplication::translate("MainWindow", "de-Select", nullptr));
-        pushButton_buildSupportToolpathSet->setText(QApplication::translate("MainWindow", "Toolpath generation", nullptr));
-        pushButton_output_Toolpath->setText(QApplication::translate("MainWindow", "Toolpath output", nullptr));
-        pushButton_TestFunc->setText(QApplication::translate("MainWindow", "test Function", nullptr));
-        pushButton_readRobot_model->setText(QApplication::translate("MainWindow", "read Robot CAD", nullptr));
-        pushButton_clearAll->setText(QApplication::translate("MainWindow", "Clear all", nullptr));
+        label_13->setText(QApplication::translate("MainWindow", "Support Generation", nullptr));
+        label_2->setText(QApplication::translate("MainWindow", "for Curved CCF printing", nullptr));
+        label->setText(QApplication::translate("MainWindow", "Input model", nullptr));
+        label_PosNorFile->setText(QApplication::translate("MainWindow", "Name:", nullptr));
+        lineEdit_SorceDataDir->setText(QApplication::translate("MainWindow", "bridge", nullptr));
+        pushButton_readData->setText(QApplication::translate("MainWindow", "1.Read Data", nullptr));
+        label_5->setText(QApplication::translate("MainWindow", "Modify model", nullptr));
+        pushButton_model_positionUpdate->setText(QApplication::translate("MainWindow", "Update", nullptr));
+        label_Xmove->setText(QApplication::translate("MainWindow", "Xm", nullptr));
+        label_Ymove->setText(QApplication::translate("MainWindow", "Ym", nullptr));
+        label_Zmove->setText(QApplication::translate("MainWindow", "Zm", nullptr));
+        label_3->setText(QApplication::translate("MainWindow", "Xr", nullptr));
+        label_4->setText(QApplication::translate("MainWindow", "Yr", nullptr));
+        label_18->setText(QApplication::translate("MainWindow", "Zr", nullptr));
+        label_7->setText(QApplication::translate("MainWindow", "Offset", nullptr));
+        pushButton_buildEnvelopeCH->setText(QApplication::translate("MainWindow", "Build envelope CH", nullptr));
+        pushButton_remeshCH->setText(QApplication::translate("MainWindow", "Remesh CH", nullptr));
+        pushButton_generateSupportSpace->setText(QApplication::translate("MainWindow", "Generate support space", nullptr));
+        pushButton_readSupportSpace->setText(QApplication::translate("MainWindow", "2.Read Support spcace", nullptr));
+        pushButton_transferField_2_SupportSpace->setText(QApplication::translate("MainWindow", "3.Transfer Field to Support Space", nullptr));
+        pushButton_generateCompatibleLayers->setText(QApplication::translate("MainWindow", "4.Layer generation", nullptr));
+        label_14->setText(QApplication::translate("MainWindow", "layer num", nullptr));
+        label_15->setText(QApplication::translate("MainWindow", "show", nullptr));
+        checkBox_EachLayerSwitch->setText(QApplication::translate("MainWindow", "each", nullptr));
+        radioButton_compatibleLayer->setText(QApplication::translate("MainWindow", "pair", nullptr));
+        pushButton_ShowAllLayers->setText(QApplication::translate("MainWindow", "ALL", nullptr));
+        pushButton_generate_support_structure->setText(QApplication::translate("MainWindow", "2.Generate Support Skeleton", nullptr));
+        pushButton_slimmedSupportGeneration->setText(QApplication::translate("MainWindow", "3.Extract Slim Support Layers", nullptr));
+        label_16->setText(QApplication::translate("MainWindow", "Width", nullptr));
+        label_17->setText(QApplication::translate("MainWindow", "Distance", nullptr));
+        pushButton_toolPathGeneration->setText(QApplication::translate("MainWindow", "4.Contour Toolpath Generation", nullptr));
+        pushButton_Tp4Ur5e->setText(QApplication::translate("MainWindow", "5.Waypoint generation UR5e", nullptr));
+        boxDeselect->setText(QApplication::translate("MainWindow", "Deselect", nullptr));
+        pushButton_clearAll->setText(QApplication::translate("MainWindow", "Clear All", nullptr));
         menuFile->setTitle(QApplication::translate("MainWindow", "File", nullptr));
         menuView->setTitle(QApplication::translate("MainWindow", "View", nullptr));
         menuSelect->setTitle(QApplication::translate("MainWindow", "Select", nullptr));

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1331</width>
-    <height>1070</height>
+    <width>1290</width>
+    <height>991</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -126,14 +126,14 @@
    </property>
    <property name="minimumSize">
     <size>
-     <width>401</width>
-     <height>984</height>
+     <width>350</width>
+     <height>900</height>
     </size>
    </property>
    <property name="maximumSize">
     <size>
-     <width>401</width>
-     <height>524287</height>
+     <width>350</width>
+     <height>900</height>
     </size>
    </property>
    <attribute name="dockWidgetArea">
@@ -145,81 +145,26 @@
     </property>
     <layout class="QVBoxLayout" name="verticalLayout">
      <item>
-      <widget class="QLabel" name="label_MANY_3DP_CNC_CAM">
+      <widget class="QLabel" name="label_13">
        <property name="font">
         <font>
          <pointsize>10</pointsize>
         </font>
        </property>
        <property name="text">
-        <string>Support Optimization</string>
+        <string>Support Generation</string>
        </property>
       </widget>
      </item>
      <item>
-      <layout class="QHBoxLayout" name="horizontalLayout_9">
-       <item>
-        <widget class="QLabel" name="label_PosNorFile">
-         <property name="font">
-          <font>
-           <pointsize>8</pointsize>
-           <weight>75</weight>
-           <bold>true</bold>
-          </font>
-         </property>
-         <property name="text">
-          <string>File Dir:</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLineEdit" name="lineEdit_SorceDataDir">
-         <property name="text">
-          <string>yoga_cut</string>
-         </property>
-        </widget>
-       </item>
-      </layout>
+      <widget class="QLabel" name="label_2">
+       <property name="text">
+        <string>for Curved CCF printing</string>
+       </property>
+      </widget>
      </item>
      <item>
       <widget class="Line" name="line">
-       <property name="orientation">
-        <enum>Qt::Horizontal</enum>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QLabel" name="label_5">
-       <property name="font">
-        <font>
-         <weight>75</weight>
-         <bold>true</bold>
-        </font>
-       </property>
-       <property name="styleSheet">
-        <string notr="true">color: rgb(0, 0, 255);</string>
-       </property>
-       <property name="text">
-        <string>Initial Guess of Support Envelope</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="pushButton_Comp_initialGuess_envelopSupport">
-       <property name="text">
-        <string>Compute conservative Convex Hull</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="Line" name="line_6">
-       <property name="orientation">
-        <enum>Qt::Horizontal</enum>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="Line" name="line_7">
        <property name="orientation">
         <enum>Qt::Horizontal</enum>
        </property>
@@ -234,12 +179,91 @@
         </font>
        </property>
        <property name="styleSheet">
-        <string notr="true">color: rgb(0, 0, 255);</string>
+        <string notr="true"/>
        </property>
        <property name="text">
-        <string>Input Layers</string>
+        <string>Input model</string>
        </property>
       </widget>
+     </item>
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_16">
+       <item>
+        <widget class="QLabel" name="label_PosNorFile">
+         <property name="font">
+          <font>
+           <pointsize>8</pointsize>
+           <weight>50</weight>
+           <bold>false</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Name:</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="lineEdit_SorceDataDir">
+         <property name="text">
+          <string>bridge</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="pushButton_readData">
+         <property name="font">
+          <font>
+           <family>3ds</family>
+           <pointsize>9</pointsize>
+           <weight>75</weight>
+           <italic>false</italic>
+           <bold>true</bold>
+           <underline>false</underline>
+          </font>
+         </property>
+         <property name="styleSheet">
+          <string notr="true"/>
+         </property>
+         <property name="text">
+          <string>1.Read Data</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_10">
+       <item>
+        <widget class="QLabel" name="label_5">
+         <property name="text">
+          <string>Modify model</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="pushButton_model_positionUpdate">
+         <property name="maximumSize">
+          <size>
+           <width>64</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="font">
+          <font>
+           <pointsize>8</pointsize>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="styleSheet">
+          <string notr="true"/>
+         </property>
+         <property name="text">
+          <string>Update</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
      </item>
      <item>
       <layout class="QHBoxLayout" name="horizontalLayout_11">
@@ -254,24 +278,22 @@
          <property name="font">
           <font>
            <pointsize>8</pointsize>
+           <weight>50</weight>
+           <bold>false</bold>
           </font>
          </property>
          <property name="text">
-          <string>X</string>
+          <string>Xm</string>
          </property>
         </widget>
        </item>
        <item>
         <widget class="QDoubleSpinBox" name="doubleSpinBox_Xmove">
-         <property name="maximumSize">
-          <size>
-           <width>62</width>
-           <height>16777215</height>
-          </size>
-         </property>
          <property name="font">
           <font>
            <pointsize>8</pointsize>
+           <weight>50</weight>
+           <bold>false</bold>
           </font>
          </property>
          <property name="minimum">
@@ -296,24 +318,22 @@
          <property name="font">
           <font>
            <pointsize>8</pointsize>
+           <weight>50</weight>
+           <bold>false</bold>
           </font>
          </property>
          <property name="text">
-          <string>Y</string>
+          <string>Ym</string>
          </property>
         </widget>
        </item>
        <item>
         <widget class="QDoubleSpinBox" name="doubleSpinBox_Ymove">
-         <property name="maximumSize">
-          <size>
-           <width>62</width>
-           <height>16777215</height>
-          </size>
-         </property>
          <property name="font">
           <font>
            <pointsize>8</pointsize>
+           <weight>50</weight>
+           <bold>false</bold>
           </font>
          </property>
          <property name="minimum">
@@ -338,323 +358,520 @@
          <property name="font">
           <font>
            <pointsize>8</pointsize>
+           <weight>50</weight>
+           <bold>false</bold>
           </font>
          </property>
          <property name="text">
-          <string>Z</string>
+          <string>Zm</string>
          </property>
         </widget>
        </item>
        <item>
         <widget class="QDoubleSpinBox" name="doubleSpinBox_Zmove">
-         <property name="maximumSize">
-          <size>
-           <width>62</width>
-           <height>16777215</height>
-          </size>
-         </property>
          <property name="font">
           <font>
            <pointsize>8</pointsize>
+           <weight>50</weight>
+           <bold>false</bold>
           </font>
          </property>
          <property name="minimum">
-          <double>-99.989999999999995</double>
+          <double>-150.000000000000000</double>
+         </property>
+         <property name="maximum">
+          <double>150.000000000000000</double>
          </property>
          <property name="value">
           <double>0.000000000000000</double>
          </property>
         </widget>
        </item>
-       <item>
-        <widget class="QPushButton" name="pushButton_readGcodeSourceData">
-         <property name="minimumSize">
-          <size>
-           <width>90</width>
-           <height>0</height>
-          </size>
-         </property>
-         <property name="font">
-          <font>
-           <pointsize>10</pointsize>
-           <weight>75</weight>
-           <italic>false</italic>
-           <bold>true</bold>
-           <underline>true</underline>
-          </font>
-         </property>
-         <property name="styleSheet">
-          <string notr="true">color: rgb(0, 80, 0);</string>
-         </property>
-         <property name="text">
-          <string>1.Read Data</string>
-         </property>
-        </widget>
-       </item>
       </layout>
-     </item>
-     <item>
-      <widget class="Line" name="line_4">
-       <property name="orientation">
-        <enum>Qt::Horizontal</enum>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QLabel" name="label_3">
-       <property name="font">
-        <font>
-         <weight>75</weight>
-         <bold>true</bold>
-        </font>
-       </property>
-       <property name="styleSheet">
-        <string notr="true">color: rgb(0, 0, 255);</string>
-       </property>
-       <property name="text">
-        <string>Draw inputed Layers</string>
-       </property>
-      </widget>
      </item>
      <item>
       <layout class="QHBoxLayout" name="horizontalLayout_2">
        <item>
-        <widget class="QLabel" name="label_2">
+        <widget class="QLabel" name="label_3">
+         <property name="font">
+          <font>
+           <pointsize>8</pointsize>
+           <weight>50</weight>
+           <bold>false</bold>
+           <kerning>false</kerning>
+          </font>
+         </property>
          <property name="text">
-          <string>Show:</string>
+          <string>Xr</string>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QSpinBox" name="spinBox_ShowLayerIndex">
-         <property name="minimumSize">
-          <size>
-           <width>1</width>
-           <height>0</height>
-          </size>
+        <widget class="QDoubleSpinBox" name="doubleSpinBox_XRot">
+         <property name="font">
+          <font>
+           <pointsize>8</pointsize>
+           <weight>50</weight>
+           <bold>false</bold>
+          </font>
          </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QCheckBox" name="checkBox_EachLayerSwitch">
-         <property name="text">
-          <string>single</string>
+         <property name="minimum">
+          <double>-180.000000000000000</double>
          </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="pushButton_ShowAllLayers">
-         <property name="text">
-          <string>Show ALL</string>
+         <property name="maximum">
+          <double>180.000000000000000</double>
          </property>
         </widget>
        </item>
        <item>
         <widget class="QLabel" name="label_4">
-         <property name="text">
-          <string>layer</string>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </item>
-     <item>
-      <layout class="QHBoxLayout" name="horizontalLayout_4">
-       <item>
-        <layout class="QHBoxLayout" name="horizontalLayout_5">
-         <item>
-          <widget class="QCheckBox" name="checkBox_onlyShowOnetype_layers">
-           <property name="font">
-            <font>
-             <weight>75</weight>
-             <bold>true</bold>
-            </font>
-           </property>
-           <property name="text">
-            <string>Only </string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QRadioButton" name="radioButton_initialORsupport">
-           <property name="font">
-            <font>
-             <weight>50</weight>
-             <bold>false</bold>
-            </font>
-           </property>
-           <property name="text">
-            <string>initial/support</string>
-           </property>
-           <property name="autoRepeat">
-            <bool>false</bool>
-           </property>
-           <property name="autoExclusive">
-            <bool>false</bool>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </item>
-       <item>
-        <widget class="QCheckBox" name="checkBox_draw_LargeISOlayers">
-         <property name="enabled">
-          <bool>false</bool>
-         </property>
          <property name="font">
           <font>
+           <pointsize>8</pointsize>
            <weight>50</weight>
            <bold>false</bold>
           </font>
          </property>
          <property name="text">
-          <string>iso-layer</string>
+          <string>Yr</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QDoubleSpinBox" name="doubleSpinBox_YRot">
+         <property name="font">
+          <font>
+           <pointsize>8</pointsize>
+           <weight>50</weight>
+           <bold>false</bold>
+          </font>
+         </property>
+         <property name="minimum">
+          <double>-180.000000000000000</double>
+         </property>
+         <property name="maximum">
+          <double>180.000000000000000</double>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_18">
+         <property name="font">
+          <font>
+           <pointsize>8</pointsize>
+           <weight>50</weight>
+           <bold>false</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Zr</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QDoubleSpinBox" name="doubleSpinBox_ZRot">
+         <property name="font">
+          <font>
+           <pointsize>8</pointsize>
+           <weight>50</weight>
+           <bold>false</bold>
+          </font>
+         </property>
+         <property name="minimum">
+          <double>-180.000000000000000</double>
+         </property>
+         <property name="maximum">
+          <double>180.000000000000000</double>
          </property>
         </widget>
        </item>
       </layout>
-     </item>
-     <item>
-      <widget class="Line" name="line_5">
-       <property name="orientation">
-        <enum>Qt::Horizontal</enum>
-       </property>
-      </widget>
      </item>
      <item>
       <layout class="QHBoxLayout" name="horizontalLayout_6">
        <item>
-        <widget class="QPushButton" name="pushButton_buildSupportRaySet">
-         <property name="enabled">
-          <bool>false</bool>
-         </property>
-         <property name="text">
-          <string>Build Support RAY</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QRadioButton" name="radioButton_deselect_origin">
-         <property name="enabled">
-          <bool>false</bool>
-         </property>
-         <property name="text">
-          <string>de-select origin</string>
-         </property>
-         <property name="autoExclusive">
-          <bool>false</bool>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </item>
-     <item>
-      <layout class="QHBoxLayout" name="horizontalLayout_7">
-       <item>
-        <widget class="QPushButton" name="pushButton_buildSupportLayerSet">
-         <property name="enabled">
-          <bool>false</bool>
-         </property>
-         <property name="text">
-          <string>Build Support Layer</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QCheckBox" name="checkBox_verifyByMarching">
-         <property name="maximumSize">
-          <size>
-           <width>150</width>
-           <height>16777215</height>
-          </size>
-         </property>
-         <property name="text">
-          <string>Marching cube</string>
-         </property>
-         <property name="checked">
-          <bool>false</bool>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </item>
-     <item>
-      <widget class="QRadioButton" name="radioButton_showRayOrSurface">
-       <property name="enabled">
-        <bool>true</bool>
-       </property>
-       <property name="font">
-        <font>
-         <weight>50</weight>
-         <bold>false</bold>
-        </font>
-       </property>
-       <property name="text">
-        <string> ray/surface of MC (support Convex hull)</string>
-       </property>
-       <property name="autoExclusive">
-        <bool>false</bool>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="Line" name="line_3">
-       <property name="orientation">
-        <enum>Qt::Horizontal</enum>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <layout class="QHBoxLayout" name="horizontalLayout_3">
-       <item>
-        <widget class="QRadioButton" name="radioButton_tightSupportLayerDraw">
-         <property name="enabled">
-          <bool>false</bool>
-         </property>
+        <widget class="QLabel" name="label_7">
          <property name="font">
           <font>
+           <pointsize>8</pointsize>
            <weight>50</weight>
            <bold>false</bold>
           </font>
          </property>
          <property name="text">
-          <string>tight support show</string>
+          <string>Offset</string>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QCheckBox" name="boxDeselect">
-         <property name="maximumSize">
+        <widget class="QDoubleSpinBox" name="doubleSpinBox_offset_dist">
+         <property name="font">
+          <font>
+           <pointsize>8</pointsize>
+           <weight>50</weight>
+           <bold>false</bold>
+          </font>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="horizontalSpacer">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
           <size>
-           <width>150</width>
-           <height>16777215</height>
+           <width>40</width>
+           <height>20</height>
           </size>
          </property>
+        </spacer>
+       </item>
+       <item>
+        <widget class="QPushButton" name="pushButton_buildEnvelopeCH">
+         <property name="font">
+          <font>
+           <pointsize>8</pointsize>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
          <property name="text">
-          <string>de-Select</string>
+          <string>Build envelope CH</string>
          </property>
         </widget>
        </item>
       </layout>
      </item>
      <item>
-      <widget class="Line" name="line_2">
-       <property name="orientation">
-        <enum>Qt::Horizontal</enum>
+      <layout class="QHBoxLayout" name="horizontalLayout_5">
+       <item>
+        <widget class="QPushButton" name="pushButton_remeshCH">
+         <property name="font">
+          <font>
+           <pointsize>8</pointsize>
+          </font>
+         </property>
+         <property name="text">
+          <string>Remesh CH</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="pushButton_generateSupportSpace">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="font">
+          <font>
+           <pointsize>8</pointsize>
+          </font>
+         </property>
+         <property name="text">
+          <string>Generate support space</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pushButton_readSupportSpace">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+       <property name="font">
+        <font>
+         <family>3ds</family>
+         <weight>75</weight>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">color: rgb(0,0, 255);</string>
+       </property>
+       <property name="text">
+        <string>2.Read Support spcace</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="pushButton_buildSupportToolpathSet">
+      <widget class="QPushButton" name="pushButton_transferField_2_SupportSpace">
+       <property name="font">
+        <font>
+         <family>3ds</family>
+         <weight>75</weight>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">color: rgb(0,0, 255);</string>
+       </property>
        <property name="text">
-        <string>Toolpath generation</string>
+        <string>3.Transfer Field to Support Space</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="pushButton_output_Toolpath">
+      <layout class="QHBoxLayout" name="horizontalLayout_7">
+       <item>
+        <widget class="QPushButton" name="pushButton_generateCompatibleLayers">
+         <property name="font">
+          <font>
+           <family>3ds</family>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">color: rgb(0,0, 255);</string>
+         </property>
+         <property name="text">
+          <string>4.Layer generation</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_14">
+         <property name="font">
+          <font>
+           <pointsize>8</pointsize>
+           <weight>50</weight>
+           <bold>false</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>layer num</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QSpinBox" name="spinBox_isoLayerNumber">
+         <property name="font">
+          <font>
+           <pointsize>8</pointsize>
+           <weight>50</weight>
+           <bold>false</bold>
+          </font>
+         </property>
+         <property name="maximum">
+          <number>999</number>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_8">
+       <item>
+        <widget class="QLabel" name="label_15">
+         <property name="font">
+          <font>
+           <pointsize>8</pointsize>
+           <weight>50</weight>
+           <bold>false</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>show</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QSpinBox" name="spinBox_ShowLayerIndex">
+         <property name="font">
+          <font>
+           <pointsize>8</pointsize>
+           <weight>50</weight>
+           <bold>false</bold>
+          </font>
+         </property>
+         <property name="maximum">
+          <number>999</number>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="checkBox_EachLayerSwitch">
+         <property name="font">
+          <font>
+           <pointsize>8</pointsize>
+           <weight>50</weight>
+           <bold>false</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>each</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QRadioButton" name="radioButton_compatibleLayer">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="font">
+          <font>
+           <pointsize>8</pointsize>
+           <weight>50</weight>
+           <bold>false</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>pair</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="pushButton_ShowAllLayers">
+         <property name="font">
+          <font>
+           <pointsize>8</pointsize>
+           <weight>50</weight>
+           <bold>false</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>ALL</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pushButton_generate_support_structure">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+       <property name="font">
+        <font>
+         <family>3ds</family>
+         <weight>75</weight>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">color: rgb(0,192, 64);</string>
+       </property>
        <property name="text">
-        <string>Toolpath output</string>
+        <string>2.Generate Support Skeleton</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pushButton_slimmedSupportGeneration">
+       <property name="font">
+        <font>
+         <family>3ds</family>
+         <weight>75</weight>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">color: rgb(0,192, 64);</string>
+       </property>
+       <property name="text">
+        <string>3.Extract Slim Support Layers</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_9">
+       <item>
+        <widget class="QLabel" name="label_16">
+         <property name="font">
+          <font>
+           <pointsize>8</pointsize>
+           <weight>50</weight>
+           <bold>false</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Width</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QDoubleSpinBox" name="doubleSpinBox_toolPathWidth">
+         <property name="font">
+          <font>
+           <pointsize>8</pointsize>
+           <weight>50</weight>
+           <bold>false</bold>
+          </font>
+         </property>
+         <property name="singleStep">
+          <double>0.100000000000000</double>
+         </property>
+         <property name="value">
+          <double>0.600000000000000</double>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_17">
+         <property name="font">
+          <font>
+           <pointsize>8</pointsize>
+           <weight>50</weight>
+           <bold>false</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Distance</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QDoubleSpinBox" name="doubleSpinBox_toolPathDistance">
+         <property name="font">
+          <font>
+           <pointsize>8</pointsize>
+           <weight>50</weight>
+           <bold>false</bold>
+          </font>
+         </property>
+         <property name="singleStep">
+          <double>0.100000000000000</double>
+         </property>
+         <property name="value">
+          <double>1.000000000000000</double>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pushButton_toolPathGeneration">
+       <property name="font">
+        <font>
+         <family>3ds</family>
+         <weight>75</weight>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">color: rgb(0,192, 64);</string>
+       </property>
+       <property name="text">
+        <string>4.Contour Toolpath Generation</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pushButton_Tp4Ur5e">
+       <property name="font">
+        <font>
+         <family>3ds</family>
+         <pointsize>9</pointsize>
+         <weight>75</weight>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">color: rgb(0,192, 64);</string>
+       </property>
+       <property name="text">
+        <string>5.Waypoint generation UR5e</string>
        </property>
       </widget>
      </item>
@@ -675,25 +892,22 @@
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="pushButton_TestFunc">
-       <property name="text">
-        <string>test Function</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="pushButton_readRobot_model">
-       <property name="text">
-        <string>read Robot CAD</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="pushButton_clearAll">
-       <property name="text">
-        <string>Clear all</string>
-       </property>
-      </widget>
+      <layout class="QHBoxLayout" name="horizontalLayout_12">
+       <item>
+        <widget class="QCheckBox" name="boxDeselect">
+         <property name="text">
+          <string>Deselect</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="pushButton_clearAll">
+         <property name="text">
+          <string>Clear All</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
      </item>
     </layout>
    </widget>
@@ -703,7 +917,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1331</width>
+     <width>1290</width>
      <height>26</height>
     </rect>
    </property>

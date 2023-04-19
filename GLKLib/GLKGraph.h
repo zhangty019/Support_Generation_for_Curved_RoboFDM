@@ -20,10 +20,6 @@ public:
 	double m_excess;
 	int m_height;
 	GLKGraphNode *nextNode;
-
-	//---------------------------------------------------------------
-	//	the following variable is for minimum spanning tree
-	bool m_bFlag;
 };
 
 #endif
@@ -45,10 +41,6 @@ public:
 	//---------------------------------------------------------------
 	//	the following variables are for minimum cut
 	double m_flow;
-
-	//---------------------------------------------------------------
-	//	the following variable is for traveling on minimum spanning tree
-	bool m_bFlag;
 };
 
 #endif
@@ -69,14 +61,7 @@ public:
 	void FillInEdgeLinkersOnNodes();
 
 	void _Debug();
-	//-------------------------------------------------------------------------------
-//	The following function is implemented by the approximation using Minimum Spanning Tree
-	void ApproximateTravelingSalesmanProblemTour(GLKObList* nodeVisitList);
 
-	//-------------------------------------------------------------------------------
-	//	The following function is implemented by the Prim's algorithm
-	double MinimumSpanningTree(GLKObList* trRootList, GLKObList* trEdgeList,
-		bool bBuildConnectivityForTree /* When this is set to true, the edgeList of each graph-node will be updated*/);
 	//---------------------------------------------------------------------
 	//	The following function is implemented by the relabel-to-front algorithm
 public:
@@ -92,8 +77,6 @@ private:
 			GLKObList *sourceRegionNodeList, GLKObList *targetRegionNodeList);
 	void _propagateInResidualGraph(GLKGraphNode *node, GLKObList *regionNodeList);
 	double _computeMaxFlow();
-
-	void _traversalOfMSTForTSP(GLKGraphNode* rootNode, GLKObList* nodeVisitList);
 
 private:
 	void clearAll();

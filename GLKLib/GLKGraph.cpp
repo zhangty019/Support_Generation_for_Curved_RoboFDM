@@ -3,7 +3,6 @@
 //////////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
-#include "GLKHeap.h"
 #include "GLKGraph.h"
 
 //////////////////////////////////////////////////////////////////////
@@ -109,130 +108,6 @@ double GLKGraph::MinimumCut(GLKGraphNode *sourceNode, GLKGraphNode *targetNode,
 	if (bComputeMaxFlow) return _computeMaxFlow();
 	return 0.0;
 }
-
-void GLKGraph::ApproximateTravelingSalesmanProblemTour(GLKObList* nodeVisitList)
-{
-	GLKPOSITION Pos;
-	GLKObList trRootList, trEdgeList;
-
-	nodeVisitList->RemoveAll();
-	MinimumSpanningTree(&trRootList, &trEdgeList, true);
-
-	//--------------------------------------------------------------------------------
-	//	Preparation
-	int maxEdgeNum = 0;
-	for (Pos = edgeList.GetHeadPosition(); Pos != NULL;) {
-		GLKGraphEdge* edge = (GLKGraphEdge*)(edgeList.GetNext(Pos));
-		edge->m_bFlag = false;
-	}
-
-	//--------------------------------------------------------------------------------
-	//	Tree-traversal for generating the tour
-	for (Pos = trRootList.GetHeadPosition(); Pos != NULL;) {
-		GLKGraphNode* rootNode = (GLKGraphNode*)(trRootList.GetNext(Pos));
-		_traversalOfMSTForTSP(rootNode, nodeVisitList);
-	}
-}
-
-void GLKGraph::_traversalOfMSTForTSP(GLKGraphNode* rootNode, GLKObList* nodeVisitList)
-{
-	GLKPOSITION Pos;
-	GLKGraphNode* linkedNode;
-
-	nodeVisitList->AddTail(rootNode);
-	for (Pos = rootNode->edgeList.GetHeadPosition(); Pos != NULL;) {
-		GLKGraphEdge* edge = (GLKGraphEdge*)(rootNode->edgeList.GetNext(Pos));
-		if (edge->m_bFlag) continue;
-		if (edge->startNode == rootNode) linkedNode = edge->endNode; else linkedNode = edge->startNode;
-
-		edge->m_bFlag = true;
-		_traversalOfMSTForTSP(linkedNode, nodeVisitList);
-	}
-}
-
-double GLKGraph::MinimumSpanningTree(GLKObList* trRootList, GLKObList* trEdgeList,
-	bool bBuildConnectivityForTree /* When this is set to true, the edgeList of each graph-node will be updated*/)
-{
-	GLKPOSITION Pos;	double cost = 0.0;
-	GLKHeap* minHeap;
-	int visitedNodeNum = 0;
-
-	for (Pos = nodeList.GetHeadPosition(); Pos != NULL;) {
-		GLKGraphNode* node = (GLKGraphNode*)(nodeList.GetNext(Pos));
-		node->m_bFlag = false;
-	}
-	trRootList->RemoveAll();	trEdgeList->RemoveAll();
-
-	while (visitedNodeNum < nodeList.GetCount()) {
-		//--------------------------------------------------------------------------------
-		//	Find the root node randomly
-		GLKGraphNode* rootNode = NULL, * linkedNode, * nextNode;
-		for (Pos = nodeList.GetHeadPosition(); Pos != NULL;) {
-			GLKGraphNode* node = (GLKGraphNode*)(nodeList.GetNext(Pos));
-			if (!(node->m_bFlag)) { rootNode = node; break; }
-		}
-		if (rootNode == NULL) break;
-
-
-		//--------------------------------------------------------------------------------
-		//	Intialization for the heap
-		minHeap = new GLKHeap(edgeList.GetCount(), true);	trRootList->AddTail(rootNode);
-		//--------------------------------------------------------------------------------
-		rootNode->m_bFlag = true;	visitedNodeNum++;
-		for (Pos = rootNode->edgeList.GetHeadPosition(); Pos != NULL;) {
-			GLKGraphEdge* edge = (GLKGraphEdge*)(rootNode->edgeList.GetNext(Pos));
-			if (edge->startNode == rootNode) linkedNode = edge->endNode; else linkedNode = edge->startNode;
-			if (linkedNode->m_bFlag) continue;
-
-			GLKHeapNode* heapNode = new GLKHeapNode;
-			heapNode->attachedObj = edge;
-			heapNode->SetValue((float)edge->m_weight);
-			minHeap->Insert(heapNode);
-		}
-
-		//--------------------------------------------------------------------------------
-		//	Using heap to construct the minimum spanning tree rooted at the rootNode
-		while (!(minHeap->ListEmpty())) {
-			GLKHeapNode* topHeapNode = minHeap->RemoveTop();
-			GLKGraphEdge* edge = (GLKGraphEdge*)(topHeapNode->attachedObj);
-			if (edge->startNode->m_bFlag) nextNode = edge->endNode; else nextNode = edge->startNode;
-			delete topHeapNode;
-			if (nextNode->m_bFlag) continue;
-
-			cost += edge->m_weight;	trEdgeList->AddTail(edge);
-			nextNode->m_bFlag = true;	visitedNodeNum++;
-			for (Pos = nextNode->edgeList.GetHeadPosition(); Pos != NULL;) {
-				GLKGraphEdge* edge = (GLKGraphEdge*)(nextNode->edgeList.GetNext(Pos));
-				if (edge->startNode == nextNode) linkedNode = edge->endNode; else linkedNode = edge->startNode;
-				if (linkedNode->m_bFlag) continue;
-
-				GLKHeapNode* heapNode = new GLKHeapNode;
-				heapNode->attachedObj = edge;
-				heapNode->SetValue((float)edge->m_weight);
-				minHeap->Insert(heapNode);
-			}
-		}
-
-		//--------------------------------------------------------------------------------
-		//	Release memory of the heap
-		delete minHeap;
-	}
-
-	if (bBuildConnectivityForTree) {
-		for (Pos = nodeList.GetHeadPosition(); Pos != NULL;) {
-			GLKGraphNode* node = (GLKGraphNode*)(nodeList.GetNext(Pos));
-			node->edgeList.RemoveAll();
-		}
-		for (Pos = trEdgeList->GetHeadPosition(); Pos != NULL;) {
-			GLKGraphEdge* edge = (GLKGraphEdge*)(trEdgeList->GetNext(Pos));
-			edge->startNode->edgeList.AddTail(edge);
-			edge->endNode->edgeList.AddTail(edge);
-		}
-	}
-
-	return cost;
-}
-
 
 void GLKGraph::_partitionByResidualGraph(GLKGraphNode *sourceNode, GLKGraphNode *targetNode, 
 										 GLKObList *sourceRegionNodeList, 

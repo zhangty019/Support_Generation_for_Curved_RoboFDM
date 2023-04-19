@@ -83,9 +83,9 @@ void QMeshFace::SetDirectionFlag( const int whichEdge, const bool toBe )
 	edgeDir[whichEdge]=toBe;
 }
 
-QMeshEdge* QMeshFace::GetEdgeRecordPtr( const int whichEdge ) // input should be 1,2,3
+QMeshEdge* QMeshFace::GetEdgeRecordPtr( const int whichEdge )
 {
-	return edges[whichEdge-1];// edges[0],edges[1],edges[2]
+	return edges[whichEdge-1];
 }
 
 void QMeshFace::SetEdgeRecordPtr( const int whichEdge, QMeshEdge * _edge )
@@ -170,23 +170,6 @@ double QMeshFace::CalArea2D()
 	m_area=area;
 
 	return area;
-}
-
-bool QMeshFace::isBoundaryFace() {
-
-	if (edges[0]->IsBoundaryEdge() ||
-		edges[1]->IsBoundaryEdge() || edges[2]->IsBoundaryEdge())
-		return true;
-	else return false;
-}
-
-int QMeshFace::getNodePtrNumber(QMeshNode* node)
-{
-	int index = -1;
-	for (int i = 0; i < 3; i++) {
-		if (node == GetNodeRecordPtr(i)) index = i;
-	}
-	return index;
 }
 
 double QMeshFace::CalArea()
@@ -358,4 +341,21 @@ QMeshTetra * QMeshFace::GetRightTetra()
 void QMeshFace::SetRightTetra(QMeshTetra * _pRightTetra)
 {
 	pRightTetra = _pRightTetra;
+}
+
+bool QMeshFace::isBoundaryFace() {
+
+	if (edges[0]->IsBoundaryEdge() ||
+		edges[1]->IsBoundaryEdge() || edges[2]->IsBoundaryEdge())
+		return true;
+	else return false;
+}
+
+int QMeshFace::getNodePtrNumber(QMeshNode* node)
+{
+	int index = -1;
+	for (int i = 0; i < 3; i++) {
+		if (node == GetNodeRecordPtr(i)) index = i;
+	}
+	return index;
 }

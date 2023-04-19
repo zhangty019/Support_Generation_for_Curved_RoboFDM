@@ -6,7 +6,6 @@
 #define _QMESHEDGE
 
 #include "../GLKLib/GLKObList.h"
-#include <vector>
 
 class QMeshPatch;
 class QMeshNode;
@@ -74,25 +73,6 @@ public:
 	int index_forAbaqus = 0;
     double weight;
 
-	/*for implicit surface cutting*/
-	QMeshNode* installed_CutNode = NULL;
-	bool isLocate_CutNode_layerEdge = false;
-	int length_index = -1;
-	int treeEdge_branch_NUM = 0;// indicate how many branch on this edge
-	int treeEdge_height = 0;	// indicate the height of tree edge
-	int treeEdge_radius = 0;	// blend above two factor into radius of energy bar
-	/*End*/
-	/*for toolpath generation*/
-	int refineNodeIndex = -1;//for surface mesh refinement when insert new Node in the middle of this Edge
-	//NOTICE !!! --- one layer edge may be cut by 2 isoValue
-	//for layer Iso-curve generation, indicate which isoNode is on this edge of Layer
-	std::vector<QMeshNode*> installedIsoNode_layerEdge;
-	bool isLocateIsoNode_layerEdge = false;//indicate the wether have a isoNode on this Edge of Layer
-	bool isConnectEdge = false;//indicate the link edge of different iso-Curve
-
-	QMeshNode* midNode = NULL; //the node installed on the middle of edge of mesh
-	/*End*/
-
 private:
 	int indexno;
 	bool flags[8];
@@ -127,6 +107,28 @@ private:
 
 public:
 	GLKObList& GetFaceList();
+
+	QMeshNode* installedIsoNode = nullptr;//indicate the which isoNode on this Edge of TET 
+	bool isLocateIsoNode = false;//indicate the wether have a isoNode on this Edge of TET
+	bool isMiddleEdge = false;	 //for split four node polygon during iso-layer generation
+	bool isMiddleEdge1 = false;  //for split four node polygon during iso-layer generation
+
+	int treeEdge_branch_NUM = 0;// indicate how many branch on this edge
+	int treeEdge_height = 0;	// indicate the height of tree edge
+
+	/*for implicit surface cutting*/
+	QMeshNode* installed_CutNode = NULL;
+	bool isLocate_CutNode_layerEdge = false;
+	int intersectNodeIndex = -1; //split edge generated node index
+
+	int refineNodeIndex = -1;//for surface mesh refinement (insert new Node in the Edge middle)
+	std::vector<QMeshNode*> installedIsoNode_layerEdge;//for layer Iso-curve generation, indicate which isoNode is on this edge of Layer
+	bool isLocateIsoNode_layerEdge = false;//indicate the wether have a isoNode on this Edge of Layer
+	bool isConnectEdge = false;//indicate the link edge of different iso-Curve
+
+	bool isConnectEdge_zigzag = false;
+
+	bool needSupport = false;
 };
 
 #endif
