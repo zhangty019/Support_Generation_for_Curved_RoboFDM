@@ -102,7 +102,7 @@ Click button '**4. Contour Toolpath Generation**'.
 Click button '**5. Waypoint generation UR5e**'.
 - The code which contains the position, normal of waypoints and extrustion volume and material information. It is used for the [UR](https://www.universal-robots.com/) robot.
 
-## Curved Layer Generation Algorithm
+## Deformation-based Slicer(S^3) Algorithm
 
 [Tianyu Zhang](https://www.linkedin.com/in/tianyu-zhang-49b8231b5/), Guoxin Fang, Yuming Huang, Neelotpal Dutta, Sylvain Lefebvre, Zekai Murat Kilic, and [Charlie C.L. Wang](https://mewangcl.github.io/), [*ACM Transactions on Graphics (SIGGRAPH Asia 2022)*, vol.41, no.6, article no.277 (15 pages), December 2022](https://dl.acm.org/doi/10.1145/3550454.3555516)
 
