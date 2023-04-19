@@ -109,3 +109,5 @@ Click button '**5. Waypoint generation UR5e**'.
 ## Hardware
 
 Please refer to [link](https://github.com/yuminghuang1995/Hardware_support_for_Curved_RoboFDM) for more details.
+
+![](DataSet/hardware_.jpg)
