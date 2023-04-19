@@ -1,5 +1,7 @@
-# Support_Generation_for_Curved_RoboFDM [paper link](https://arxiv.org/abs/2302.05510)
-Support Generation for Robot-Assisted 3D Printing with Curved Layers
+# Support_Generation_for_Curved_RoboFDM 
+Support Generation for Robot-Assisted 3D Printing with Curved Layers. [paper link](https://arxiv.org/abs/2302.05510)
+
+
 
 
 ## Installation
